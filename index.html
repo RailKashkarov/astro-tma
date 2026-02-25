@@ -40,65 +40,62 @@
 </head>
 <body>
     <div class="card">
-        <div id="user-name">Загрузка профиля...</div>
-        <div id="zodiac-icon" style="font-size: 70px; margin: 15px 0;">⏳</div>
-        <div id="zodiac-name" class="zodiac-name">Синхронизация...</div>
+        <div id="user-name">Загрузка...</div>
+        <div id="zodiac-icon" style="font-size: 70px; margin: 15px 0;">✨</div>
+        <div id="zodiac-name" class="zodiac-name">Анализируем...</div>
         <div id="birth-date" style="color: #aaa; font-size: 14px;"></div>
-        <button onclick="window.Telegram.WebApp.close()">Вернуться в бот</button>
-        <div class="status" id="status">Инициализация...</div>
+        <button onclick="window.Telegram.WebApp.close()">Закрыть</button>
+        <div class="status" id="status-text">Инициализация...</div>
     </div>
 
     <script>
-        // Инициализация Telegram Web App
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // 1. НАСТРОЙКИ SUPABASE (Вставь свои данные в кавычках)
-        const SUPABASE_URL = "https://nimnuqzvdgxadisjtapp.supabase.co"
-        const SUPABASE_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7";
+        // --- ВСТАВЬ ДАННЫЕ СТРОГО ВНУТРИ КАВЫЧЕК ---
+        const MY_URL = "https://nimnuqzvdgxadisjtapp.supabase.co"; 
+        const MY_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; 
+        // ------------------------------------------
 
-        // Создаем клиент Supabase правильно
-        const supabaseClient = supabase.createClient(S_URL, S_KEY);
+        // Инициализируем клиент с другим именем переменной, чтобы не было конфликта
+        const mySupabase = supabase.createClient(MY_URL, MY_KEY);
 
-        async function initApp() {
-            const statusEl = document.getElementById('status');
+        async function startApp() {
+            const status = document.getElementById('status-text');
             const user = tg.initDataUnsafe?.user;
 
             if (!user) {
-                statusEl.innerText = "Ошибка: Запустите через Telegram";
+                status.innerText = "Ошибка: Откройте в Telegram";
                 return;
             }
 
             document.getElementById('user-name').innerText = `Привет, ${user.first_name}!`;
-            statusEl.innerText = "Связь с базой данных...";
+            status.innerText = "Связываюсь с базой...";
 
             try {
-                // Запрос данных пользователя
-                const { data, error } = await supabaseClient
+                const { data, error } = await mySupabase
                     .from('users')
                     .select('*')
                     .eq('telegram_id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 if (error) throw error;
 
                 if (data) {
-                    document.getElementById('zodiac-name').innerText = data.zodiac_sign || "Знак не указан";
-                    document.getElementById('birth-date').innerText = data.birth_date ? `Дата рождения: ${data.birth_date}` : "Дата не введена";
-                    document.getElementById('zodiac-icon').innerText = "🔮";
-                    statusEl.innerText = "Данные загружены успешно";
+                    document.getElementById('zodiac-name').innerText = data.zodiac_sign || "Знак не найден";
+                    document.getElementById('birth-date').innerText = data.birth_date ? `Дата: ${data.birth_date}` : "Дата не указана";
+                    status.innerText = "Данные получены";
                 } else {
-                    statusEl.innerText = "Пользователь не найден. Напишите боту!";
+                    status.innerText = "Пользователь не найден. Сначала нажми /start в боте!";
+                    document.getElementById('zodiac-name').innerText = "Пусто";
                 }
             } catch (err) {
                 console.error(err);
-                statusEl.innerText = "Ошибка: " + (err.message || "Нет доступа к базе");
-                document.getElementById('zodiac-name').innerText = "Ошибка";
+                status.innerText = "Ошибка API: " + err.message;
             }
         }
 
-        // Запуск функции
-        initApp();
+        startApp();
     </script>
 </body>
 </html>
