@@ -9,35 +9,35 @@
     <style>
         body { background: #0d1117; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         .card { background: #161b22; padding: 30px; border-radius: 20px; text-align: center; width: 85%; max-width: 350px; border: 1px solid #30363d; }
+        .name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
         .zodiac { font-size: 32px; color: #7d5fff; margin: 15px 0; font-weight: bold; }
         .status { font-size: 12px; color: #8b949e; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <div id="u_name" style="font-size: 20px;">Загрузка профиля...</div>
+        <div id="u_name" class="name">Загрузка...</div>
         <div id="z_icon" style="font-size: 50px; margin: 10px;">✨</div>
         <div id="z_name" class="zodiac">Синхронизация...</div>
-        <div id="status" class="status">Проверка связи...</div>
+        <div id="status" class="status">Связь с космосом...</div>
     </div>
 
     <script>
-        // Чтобы GitHub не ругался, вставляй свой ключ так:
-        // Возьми свой ANON_KEY и просто вставь его в кавычки ниже.
-        const PART1 = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; 
-        
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // ИСПОЛЬЗУЙ КЛЮЧ sb_publishable_...
         const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
+        const S_KEY = "sb_publishable_1vKg8mcLku8wGriVT_GeCg_fy8u84o-"; 
 
-        try {
-            const client = supabase.createClient(S_URL, PART1);
-            const tg = window.Telegram.WebApp;
-            tg.expand();
+        const client = supabase.createClient(S_URL, S_KEY);
 
-            async function start() {
-                const user = tg.initDataUnsafe?.user || { id: 0, first_name: "Гость" };
-                document.getElementById('u_name').innerText = user.first_name;
-                document.getElementById('status').innerText = "Ищу тебя в базе...";
+        async function init() {
+            // Если заходим с ПК, ставим тестовое имя, если из ТГ — реальное
+            const user = tg.initDataUnsafe?.user || { id: 0, first_name: "Раиль (Тест)" };
+            document.getElementById('u_name').innerText = user.first_name;
 
+            try {
                 const { data, error } = await client
                     .from('users')
                     .select('*')
@@ -45,21 +45,19 @@
                     .maybeSingle();
 
                 if (error) {
-                    document.getElementById('status').innerText = "Ошибка базы: " + error.message;
-                    return;
-                }
-
-                if (data) {
-                    document.getElementById('z_name').innerText = data.zodiac_sign || "Знак не выбран";
-                    document.getElementById('status').innerText = "Данные загружены!";
+                    document.getElementById('status').innerText = "Ошибка: " + error.message;
+                } else if (data) {
+                    document.getElementById('z_name').innerText = data.zodiac_sign || "Знак не найден";
+                    document.getElementById('status').innerText = "Данные обновлены";
                 } else {
-                    document.getElementById('status').innerText = "Пользователь не найден. Нажми /start в боте.";
+                    document.getElementById('status').innerText = "Пользователь не найден в базе";
                 }
+            } catch (e) {
+                document.getElementById('status').innerText = "Сбой: " + e.message;
             }
-            start();
-        } catch (e) {
-            document.getElementById('status').innerText = "Ошибка: " + e.message;
         }
+
+        init();
     </script>
 </body>
 </html>
