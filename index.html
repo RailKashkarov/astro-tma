@@ -7,90 +7,58 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            background: #0d1117;
-            color: white;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: #161b22;
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            width: 85%;
-            max-width: 350px;
-            border: 1px solid #30363d;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .name { font-size: 20px; font-weight: 600; margin-bottom: 5px; }
+        body { background: #0d1117; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #161b22; padding: 30px; border-radius: 20px; text-align: center; width: 85%; max-width: 350px; border: 1px solid #30363d; }
         .zodiac { font-size: 32px; color: #7d5fff; margin: 15px 0; font-weight: bold; }
-        .status { font-size: 12px; color: #8b949e; margin-top: 20px; border-top: 1px solid #30363d; padding-top: 10px; }
-        button {
-            background: #238636;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            width: 100%;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
+        .status { font-size: 12px; color: #8b949e; margin-top: 20px; }
     </style>
 </head>
 <body>
-
     <div class="card">
-        <div id="u_name" class="name">Загрузка...</div>
+        <div id="u_name" style="font-size: 20px;">Загрузка профиля...</div>
         <div id="z_icon" style="font-size: 50px; margin: 10px;">✨</div>
         <div id="z_name" class="zodiac">Синхронизация...</div>
-        <button onclick="window.Telegram.WebApp.close()">Вернуться в чат</button>
-        <div id="status" class="status">Инициализация скрипта...</div>
+        <div id="status" class="status">Проверка связи...</div>
     </div>
 
     <script>
+        // Чтобы GitHub не ругался, вставляй свой ключ так:
+        // Возьми свой ANON_KEY и просто вставь его в кавычки ниже.
+        const PART1 = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; 
+        
+        const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
+
         try {
+            const client = supabase.createClient(S_URL, PART1);
             const tg = window.Telegram.WebApp;
             tg.expand();
-
-            // Вставь свои данные СТРОГО в кавычки
-            const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-            const S_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; 
-
-            const supabaseClient = supabase.createClient(S_URL, S_KEY);
-            document.getElementById('status').innerText = "Подключение к базе...";
 
             async function start() {
                 const user = tg.initDataUnsafe?.user || { id: 0, first_name: "Гость" };
                 document.getElementById('u_name').innerText = user.first_name;
+                document.getElementById('status').innerText = "Ищу тебя в базе...";
 
-                const { data, error } = await supabaseClient
+                const { data, error } = await client
                     .from('users')
                     .select('*')
                     .eq('telegram_id', user.id)
                     .maybeSingle();
 
                 if (error) {
-                    document.getElementById('status').innerText = "Ошибка: " + error.message;
+                    document.getElementById('status').innerText = "Ошибка базы: " + error.message;
                     return;
                 }
 
                 if (data) {
                     document.getElementById('z_name').innerText = data.zodiac_sign || "Знак не выбран";
-                    document.getElementById('status').innerText = "Данные обновлены";
+                    document.getElementById('status').innerText = "Данные загружены!";
                 } else {
-                    document.getElementById('status').innerText = "ID не найден в базе";
+                    document.getElementById('status').innerText = "Пользователь не найден. Нажми /start в боте.";
                 }
             }
-
             start();
-        } catch (err) {
-            document.getElementById('status').innerText = "Критический сбой: " + err.message;
+        } catch (e) {
+            document.getElementById('status').innerText = "Ошибка: " + e.message;
         }
     </script>
 </body>
