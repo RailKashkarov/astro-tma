@@ -7,45 +7,47 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Твои стили остаются такими же, я их пропущу для краткости кода */
         body { background: #0b0e14; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; }
         .card { background: #161b22; border-radius: 20px; padding: 20px; margin: 20px; border: 1px solid #30363d; }
-        .badge { background: #7d5fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; }
+        .badge { background: #7d5fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; display: inline-block; }
+        .error-msg { color: #ff4d4d; font-size: 12px; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1 id="u_name">Загрузка...</h1>
-        <div id="z_name" class="badge">Синхронизация...</div>
-        <div style="margin-top: 20px;">
-            <p style="color: #8b949e; font-size: 12px;">ДАТА РОЖДЕНИЯ</p>
-            <h2 id="b_date">??.??.????</h2>
+        <div id="status_badge" class="badge">Синхронизация...</div>
+        
+        <div style="margin-top: 30px;">
+            <p style="color: #8b949e; font-size: 12px; letter-spacing: 1px;">ВАША ДАТА РОЖДЕНИЯ</p>
+            <h2 id="b_date" style="font-size: 28px; margin: 10px 0;">??.??.????</h2>
         </div>
+
+        <div id="debug_info" class="error-msg"></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ВНИМАНИЕ: Проверь, чтобы эти данные совпадали с твоим .env
+        // ВСТАВЬ СВОИ ДАННЫЕ ИЗ SUPABASE (Settings -> API)
         const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-        const S_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; // Вставь сюда свой ANON KEY
+        const S_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; 
 
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
         async function loadProfile() {
+            const user = tg.initDataUnsafe?.user;
+            const debug = document.getElementById('debug_info');
+            
+            if (!user) {
+                debug.innerText = "Ошибка: Запустите через Telegram";
+                return;
+            }
+
+            document.getElementById('u_name').innerText = user.first_name;
+
             try {
-                // Берем ID пользователя из Телеграма
-                const user = tg.initDataUnsafe?.user;
-                
-                if (!user) {
-                    document.getElementById('u_name').innerText = "Ошибка: Открой в TG";
-                    return;
-                }
-
-                document.getElementById('u_name').innerText = user.first_name;
-
-                // Запрос к базе данных
                 const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
@@ -54,17 +56,18 @@
 
                 if (error) throw error;
 
-                if (data) {
-                    // Если данные нашли — подставляем их в текст
-                    document.getElementById('z_name').innerText = data.zodiac_sign || "Знак не рассчитан";
-                    document.getElementById('b_date').innerText = data.birth_date || "Дата не указана";
+                if (data && data.birth_date) {
+                    document.getElementById('status_badge').innerText = data.zodiac_sign || "Рассчитано";
+                    document.getElementById('b_date').innerText = data.birth_date;
+                    debug.innerText = ""; // Ошибок нет
                 } else {
-                    document.getElementById('z_name').innerText = "Профиль не найден";
-                    document.getElementById('b_date').innerText = "Напиши боту дату!";
+                    document.getElementById('status_badge').innerText = "Данные не найдены";
+                    document.getElementById('b_date').innerText = "??.??.????";
+                    debug.innerText = "Пожалуйста, напиши боту свою дату рождения!";
                 }
             } catch (err) {
-                console.error("Ошибка базы:", err);
-                document.getElementById('z_name').innerText = "Ошибка базы";
+                console.error(err);
+                debug.innerText = "Ошибка подключения к базе данных";
             }
         }
 
