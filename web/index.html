@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astro App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Твои стили остаются такими же, я их пропущу для краткости кода */
+        body { background: #0b0e14; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; }
+        .card { background: #161b22; border-radius: 20px; padding: 20px; margin: 20px; border: 1px solid #30363d; }
+        .badge { background: #7d5fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1 id="u_name">Загрузка...</h1>
+        <div id="z_name" class="badge">Синхронизация...</div>
+        <div style="margin-top: 20px;">
+            <p style="color: #8b949e; font-size: 12px;">ДАТА РОЖДЕНИЯ</p>
+            <h2 id="b_date">??.??.????</h2>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // ВНИМАНИЕ: Проверь, чтобы эти данные совпадали с твоим .env
+        const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
+        const S_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; // Вставь сюда свой ANON KEY
+
+        const supabaseClient = supabase.createClient(S_URL, S_KEY);
+
+        async function loadProfile() {
+            try {
+                // Берем ID пользователя из Телеграма
+                const user = tg.initDataUnsafe?.user;
+                
+                if (!user) {
+                    document.getElementById('u_name').innerText = "Ошибка: Открой в TG";
+                    return;
+                }
+
+                document.getElementById('u_name').innerText = user.first_name;
+
+                // Запрос к базе данных
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('telegram_id', user.id)
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (data) {
+                    // Если данные нашли — подставляем их в текст
+                    document.getElementById('z_name').innerText = data.zodiac_sign || "Знак не рассчитан";
+                    document.getElementById('b_date').innerText = data.birth_date || "Дата не указана";
+                } else {
+                    document.getElementById('z_name').innerText = "Профиль не найден";
+                    document.getElementById('b_date').innerText = "Напиши боту дату!";
+                }
+            } catch (err) {
+                console.error("Ошибка базы:", err);
+                document.getElementById('z_name').innerText = "Ошибка базы";
+            }
+        }
+
+        loadProfile();
+    </script>
+</body>
+</html>
