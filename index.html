@@ -21,75 +21,84 @@
         .card {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(15px);
-            padding: 40px;
+            padding: 30px;
             border-radius: 30px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
-            width: 85%;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            width: 80%;
+            max-width: 400px;
         }
         .zodiac-name { font-size: 28px; font-weight: bold; margin: 10px 0; color: #7d5fff; }
-        .status { font-size: 14px; color: #aaa; margin-top: 10px; }
+        .status { font-size: 12px; color: #888; margin-top: 15px; }
         button {
             background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);
-            border: none; padding: 15px 30px; color: white;
-            border-radius: 15px; font-weight: bold; margin-top: 30px; width: 100%;
+            border: none; padding: 12px 20px; color: white;
+            border-radius: 12px; font-weight: bold; margin-top: 20px; width: 100%;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <div class="card">
-        <div id="user-name" style="font-size: 18px;">Загрузка...</div>
-        <div id="zodiac-icon" style="font-size: 80px; margin: 20px 0;">✨</div>
-        <div id="zodiac-name" class="zodiac-name">Анализируем звезды...</div>
-        <div id="birth-date" style="color: #888;"></div>
-        <button onclick="Telegram.WebApp.close()">Закрыть</button>
-        <div class="status" id="status">Подключение к Supabase...</div>
+        <div id="user-name">Загрузка профиля...</div>
+        <div id="zodiac-icon" style="font-size: 70px; margin: 15px 0;">⏳</div>
+        <div id="zodiac-name" class="zodiac-name">Синхронизация...</div>
+        <div id="birth-date" style="color: #aaa; font-size: 14px;"></div>
+        <button onclick="window.Telegram.WebApp.close()">Вернуться в бот</button>
+        <div class="status" id="status">Инициализация...</div>
     </div>
 
     <script>
+        // Инициализация Telegram Web App
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // 1. НАСТРОЙКИ SUPABASE (Вставь свои данные сюда)
+        // 1. НАСТРОЙКИ SUPABASE (Вставь свои данные в кавычках)
         const SUPABASE_URL = "https://nimnuqzvdgxadisjtapp.supabase.co"
         const SUPABASE_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function loadUserData() {
+        // Создаем клиент Supabase правильно
+        const supabaseClient = supabase.createClient(S_URL, S_KEY);
+
+        async function initApp() {
+            const statusEl = document.getElementById('status');
             const user = tg.initDataUnsafe?.user;
-            
-            if (user) {
-                document.getElementById('user-name').innerText = `Привет, ${user.first_name}!`;
-                
-                try {
-                    // Запрашиваем данные из таблицы users по telegram_id
-                    const { data, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('telegram_id', user.id)
-                        .single();
 
-                    if (data) {
-                        document.getElementById('zodiac-name').innerText = data.zodiac_sign || "Знак не определен";
-                        document.getElementById('birth-date').innerText = data.birth_date ? `Дата: ${data.birth_date}` : "Введите дату в боте";
-                        document.getElementById('status').innerText = "Данные синхронизированы";
-                        
-                        if (data.zodiac_sign) {
-                            document.getElementById('zodiac-icon').innerText = "🔮";
-                        }
-                    } else {
-                        document.getElementById('status').innerText = "Пользователь не найден в базе";
-                    }
-                } catch (err) {
-                    document.getElementById('status').innerText = "Ошибка загрузки данных";
+            if (!user) {
+                statusEl.innerText = "Ошибка: Запустите через Telegram";
+                return;
+            }
+
+            document.getElementById('user-name').innerText = `Привет, ${user.first_name}!`;
+            statusEl.innerText = "Связь с базой данных...";
+
+            try {
+                // Запрос данных пользователя
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('telegram_id', user.id)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    document.getElementById('zodiac-name').innerText = data.zodiac_sign || "Знак не указан";
+                    document.getElementById('birth-date').innerText = data.birth_date ? `Дата рождения: ${data.birth_date}` : "Дата не введена";
+                    document.getElementById('zodiac-icon').innerText = "🔮";
+                    statusEl.innerText = "Данные загружены успешно";
+                } else {
+                    statusEl.innerText = "Пользователь не найден. Напишите боту!";
                 }
-            } else {
-                document.getElementById('user-name').innerText = "Доступ через Telegram...";
+            } catch (err) {
+                console.error(err);
+                statusEl.innerText = "Ошибка: " + (err.message || "Нет доступа к базе");
+                document.getElementById('zodiac-name').innerText = "Ошибка";
             }
         }
 
-        loadUserData();
+        // Запуск функции
+        initApp();
     </script>
 </body>
 </html>
