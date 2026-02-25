@@ -9,65 +9,56 @@
     <style>
         body { background: #0b0e14; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; }
         .card { background: #161b22; border-radius: 20px; padding: 20px; margin: 20px; border: 1px solid #30363d; }
-        .badge { background: #7d5fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; display: inline-block; }
-        .error-msg { color: #ff4d4d; font-size: 12px; margin-top: 10px; }
+        .badge { background: #7d5fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+        h1 { margin: 10px 0; font-size: 24px; }
+        .date { font-size: 32px; font-weight: bold; color: #ffffff; }
+        .label { color: #8b949e; font-size: 12px; margin-top: 20px; text-transform: uppercase; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1 id="u_name">Загрузка...</h1>
-        <div id="status_badge" class="badge">Синхронизация...</div>
+        <div id="status_badge" class="badge">Загрузка...</div>
+        <h1 id="u_name">Пользователь</h1>
         
-        <div style="margin-top: 30px;">
-            <p style="color: #8b949e; font-size: 12px; letter-spacing: 1px;">ВАША ДАТА РОЖДЕНИЯ</p>
-            <h2 id="b_date" style="font-size: 28px; margin: 10px 0;">??.??.????</h2>
-        </div>
-
-        <div id="debug_info" class="error-msg"></div>
+        <p class="label">Дата рождения</p>
+        <div id="b_date" class="date">??.??.????</div>
+        
+        <p class="label">Тип дизайна</p>
+        <div id="hd_type" style="color: #7d5fff;">Определяется...</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ВСТАВЬ СВОИ ДАННЫЕ ИЗ SUPABASE (Settings -> API)
+        // НАСТРОЙКИ SUPABASE
         const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-        const S_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; 
+        const S_KEY = "sb_publishable_1vKg8mcLku8wGriVT_GeCg_fy8u84o-"; // ВСТАВЬ СЮДА ПУБЛИЧНЫЙ КЛЮЧ
 
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
         async function loadProfile() {
             const user = tg.initDataUnsafe?.user;
-            const debug = document.getElementById('debug_info');
-            
             if (!user) {
-                debug.innerText = "Ошибка: Запустите через Telegram";
+                document.getElementById('status_badge').innerText = "Ошибка входа";
                 return;
             }
 
             document.getElementById('u_name').innerText = user.first_name;
 
-            try {
-                const { data, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('telegram_id', user.id)
-                    .maybeSingle();
+            const { data, error } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('telegram_id', user.id)
+                .maybeSingle();
 
-                if (error) throw error;
-
-                if (data && data.birth_date) {
-                    document.getElementById('status_badge').innerText = data.zodiac_sign || "Рассчитано";
-                    document.getElementById('b_date').innerText = data.birth_date;
-                    debug.innerText = ""; // Ошибок нет
-                } else {
-                    document.getElementById('status_badge').innerText = "Данные не найдены";
-                    document.getElementById('b_date').innerText = "??.??.????";
-                    debug.innerText = "Пожалуйста, напиши боту свою дату рождения!";
-                }
-            } catch (err) {
-                console.error(err);
-                debug.innerText = "Ошибка подключения к базе данных";
+            if (data && data.birth_date) {
+                document.getElementById('b_date').innerText = data.birth_date;
+                document.getElementById('status_badge').innerText = data.zodiac_sign || "Готово";
+                document.getElementById('hd_type').innerText = data.hd_type || "Не определен";
+            } else {
+                document.getElementById('status_badge').innerText = "Данных нет";
+                document.getElementById('hd_type').innerText = "Напиши боту дату рождения";
             }
         }
 
