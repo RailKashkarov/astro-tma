@@ -7,95 +7,58 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            padding: 30px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-            width: 80%;
-            max-width: 400px;
-        }
-        .zodiac-name { font-size: 28px; font-weight: bold; margin: 10px 0; color: #7d5fff; }
-        .status { font-size: 12px; color: #888; margin-top: 15px; }
-        button {
-            background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);
-            border: none; padding: 12px 20px; color: white;
-            border-radius: 12px; font-weight: bold; margin-top: 20px; width: 100%;
-            cursor: pointer;
-        }
+        body { background: #090a0f; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: rgba(255, 255, 255, 0.05); padding: 30px; border-radius: 20px; text-align: center; width: 80%; border: 1px solid #333; }
+        .zodiac { font-size: 24px; color: #7d5fff; margin: 10px 0; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="card">
-        <div id="user-name">Загрузка...</div>
-        <div id="zodiac-icon" style="font-size: 70px; margin: 15px 0;">✨</div>
-        <div id="zodiac-name" class="zodiac-name">Анализируем...</div>
-        <div id="birth-date" style="color: #aaa; font-size: 14px;"></div>
-        <button onclick="window.Telegram.WebApp.close()">Закрыть</button>
-        <div class="status" id="status-text">Инициализация...</div>
+        <div id="u_name">Загрузка (Версия 2)...</div>
+        <div id="z_icon" style="font-size: 50px; margin: 10px;">✨</div>
+        <div id="z_name" class="zodiac">Синхронизация...</div>
+        <div id="status" style="font-size: 10px; color: #666;">Инициализация...</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ВСТАВЬ ДАННЫЕ СТРОГО ВНУТРИ КАВЫЧЕК ---
-        const MY_URL = "https://nimnuqzvdgxadisjtapp.supabase.co"; 
-        const MY_KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; 
-        // ------------------------------------------
+        // Данные Supabase
+        const URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
+        const KEY = "ТВОЙ_ANON_KEY"; // Проверь, чтобы тут не было лишних пробелов
 
-        // Инициализируем клиент с другим именем переменной, чтобы не было конфликта
-        const mySupabase = supabase.createClient(MY_URL, MY_KEY);
+        const client = supabase.createClient(URL, KEY);
 
-        async function startApp() {
-            const status = document.getElementById('status-text');
+        async function load() {
+            const st = document.getElementById('status');
             const user = tg.initDataUnsafe?.user;
 
             if (!user) {
-                status.innerText = "Ошибка: Откройте в Telegram";
+                st.innerText = "Ошибка: Запустите из бота";
                 return;
             }
 
-            document.getElementById('user-name').innerText = `Привет, ${user.first_name}!`;
-            status.innerText = "Связываюсь с базой...";
+            document.getElementById('u_name').innerText = user.first_name;
 
             try {
-                const { data, error } = await mySupabase
+                const { data, error } = await client
                     .from('users')
                     .select('*')
                     .eq('telegram_id', user.id)
-                    .maybeSingle();
-
-                if (error) throw error;
+                    .single();
 
                 if (data) {
-                    document.getElementById('zodiac-name').innerText = data.zodiac_sign || "Знак не найден";
-                    document.getElementById('birth-date').innerText = data.birth_date ? `Дата: ${data.birth_date}` : "Дата не указана";
-                    status.innerText = "Данные получены";
+                    document.getElementById('z_name').innerText = data.zodiac_sign || "Нет знака";
+                    st.innerText = "Готово";
                 } else {
-                    status.innerText = "Пользователь не найден. Сначала нажми /start в боте!";
-                    document.getElementById('zodiac-name').innerText = "Пусто";
+                    st.innerText = "Пользователь не найден";
                 }
-            } catch (err) {
-                console.error(err);
-                status.innerText = "Ошибка API: " + err.message;
+            } catch (e) {
+                st.innerText = "Ошибка базы";
             }
         }
-
-        startApp();
+        load();
     </script>
 </body>
 </html>
