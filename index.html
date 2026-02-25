@@ -1,64 +1,42 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astro TMA</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { background: #090a0f; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: rgba(255, 255, 255, 0.05); padding: 30px; border-radius: 20px; text-align: center; width: 80%; border: 1px solid #333; }
-        .zodiac { font-size: 24px; color: #7d5fff; margin: 10px 0; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div id="u_name">Загрузка (Версия 2)...</div>
-        <div id="z_icon" style="font-size: 50px; margin: 10px;">✨</div>
-        <div id="z_name" class="zodiac">Синхронизация...</div>
-        <div id="status" style="font-size: 10px; color: #666;">Инициализация...</div>
-    </div>
-
-    <script>
+<script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Данные Supabase
         const URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-        const KEY = "ТВОЙ_ANON_KEY"; // Проверь, чтобы тут не было лишних пробелов
-
-        const client = supabase.createClient(URL, KEY);
+        const KEY = "sb_secret_j0YFSU5y0AKh6EDdAtuF9A_SOC77tT7"; // Проверь кавычки!
 
         async function load() {
             const st = document.getElementById('status');
-            const user = tg.initDataUnsafe?.user;
-
-            if (!user) {
-                st.innerText = "Ошибка: Запустите из бота";
-                return;
-            }
-
-            document.getElementById('u_name').innerText = user.first_name;
-
             try {
+                // Проверка инициализации клиента
+                const client = supabase.createClient(URL, KEY);
+                st.innerText = "Клиент создан. Ищу пользователя...";
+
+                const user = tg.initDataUnsafe?.user || { id: 12345, first_name: "Тестовый вход" };
+                document.getElementById('u_name').innerText = user.first_name;
+
                 const { data, error } = await client
                     .from('users')
                     .select('*')
                     .eq('telegram_id', user.id)
-                    .single();
+                    .maybeSingle();
+
+                if (error) {
+                    st.innerText = "Ошибка базы: " + error.message;
+                    return;
+                }
 
                 if (data) {
-                    document.getElementById('z_name').innerText = data.zodiac_sign || "Нет знака";
-                    st.innerText = "Готово";
+                    document.getElementById('z_name').innerText = data.zodiac_sign || "Знак не найден";
+                    st.innerText = "Готово!";
                 } else {
-                    st.innerText = "Пользователь не найден";
+                    st.innerText = "Пользователь не найден в базе. Нажми /start в боте!";
                 }
             } catch (e) {
-                st.innerText = "Ошибка базы";
+                // Если код упал, мы увидим причину здесь
+                st.innerText = "Критическая ошибка: " + e.message;
+                console.error(e);
             }
         }
         load();
     </script>
-</body>
-</html>
