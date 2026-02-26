@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Astro System Premium Full</title>
+    <title>Astro System Premium All-In-One</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -43,14 +43,14 @@
         input:checked + .slider:before { transform: translateX(22px); }
 
         .tabs { display: flex; gap: 10px; margin: 15px 0; overflow-x: auto; padding-bottom: 8px; }
-        .tab { padding: 10px 18px; background: var(--glass); border-radius: 20px; font-size: 12px; white-space: nowrap; }
+        .tab { padding: 10px 18px; background: var(--glass); border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
         .tab.active { background: var(--accent); color: black; font-weight: bold; }
 
-        input[type="text"], input[type="date"], input[type="time"] { width: 100%; padding: 16px; margin: 8px 0 16px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 14px; box-sizing: border-box; }
-        label { font-size: 12px; opacity: 0.8; margin-left: 5px; color: var(--accent); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        input { width: 100%; padding: 16px; margin: 8px 0 16px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 14px; box-sizing: border-box; outline: none; }
+        input:focus { border-color: var(--accent); }
+        label { font-size: 12px; opacity: 0.8; margin-left: 5px; color: var(--accent); font-weight: bold; text-transform: uppercase; }
         
-        /* Стиль для инфографики HD */
-        .hd-chart { width: 100%; height: 200px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+        .hd-chart { width: 100%; height: 220px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -60,8 +60,8 @@
     <div id="app" class="container">
         <div class="card">
             <div class="settings-btn" onclick="openModule('settings')">⚙️</div>
-            <div id="u-name" style="font-size: 24px; font-weight: bold;">Загрузка...</div>
-            <div id="u-info" style="opacity: 0.5; font-size: 14px; margin-top: 6px;">Синхронизация звезд...</div>
+            <div id="u-name" style="font-size: 24px; font-weight: bold;">Странник</div>
+            <div id="u-info" style="opacity: 0.5; font-size: 14px; margin-top: 6px;">Синхронизация...</div>
         </div>
 
         <div class="grid">
@@ -93,32 +93,45 @@
             try {
                 sb = supabase.createClient(S_URL, S_KEY);
                 const user = tg.initDataUnsafe?.user;
-                if(user) {
-                    const { data } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
-                    if(data) { 
-                        myData = data; 
-                        document.getElementById('u-name').innerText = data.username || user.first_name;
-                        document.getElementById('u-info').innerText = `${data.birth_date} • ${data.birth_city}`;
-                    }
+                if(!user) return;
+
+                let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+                
+                // РЕГИСТРАЦИЯ НОВОГО ПОЛЬЗОВАТЕЛЯ
+                if(!data) {
+                    const newUser = {
+                        telegram_id: user.id,
+                        username: user.username || user.first_name,
+                        notify_lunar: false, notify_biorhythm: false, notify_money: false, notify_advice: false
+                    };
+                    const { data: created } = await sb.from('users').insert([newUser]).select().single();
+                    data = created;
+                }
+
+                if(data) { 
+                    myData = data; 
+                    document.getElementById('u-name').innerText = data.username;
+                    document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены";
                 }
             } catch(e) { console.error(e); }
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app').style.display = 'block';
         }
 
-        function getDailyText(key, generatorFunc) {
-            const today = new Date().toISOString().split('T')[0];
-            const storageKey = `${key}_${today}`;
-            const saved = localStorage.getItem(storageKey);
-            if (saved) return saved;
-            const newText = generatorFunc();
-            localStorage.setItem(storageKey, newText);
-            return newText;
+        async function updateNotify(field, value) {
+            if(!myData) return;
+            const { error } = await sb.from('users').update({ [field]: value }).eq('telegram_id', myData.telegram_id);
+            if (error) tg.showAlert("Ошибка: " + error.message);
+            else myData[field] = value;
         }
 
-        async function updateNotify(field, value) {
-            myData[field] = value;
-            await sb.from('users').update({ [field]: value }).eq('telegram_id', myData.telegram_id);
+        function getDailyText(key, func) {
+            const day = new Date().toISOString().split('T')[0];
+            const k = `${key}_${day}`;
+            if(localStorage.getItem(k)) return localStorage.getItem(k);
+            const txt = func();
+            localStorage.setItem(k, txt);
+            return txt;
         }
 
         function openModule(type) {
@@ -129,110 +142,93 @@
             cont.innerHTML = '';
 
             if(type === 'settings') {
-                title.innerText = 'УПРАВЛЕНИЕ УВЕДОМЛЕНИЯМИ';
+                title.innerText = 'УВЕДОМЛЕНИЯ';
                 cont.innerHTML = `
-                    <div class="setting-item"><span>🌙 Лунный календарь</span><label class="switch"><input type="checkbox" ${myData.notify_lunar ? 'checked' : ''} onchange="updateNotify('notify_lunar', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>🧬 Персональные биоритмы</span><label class="switch"><input type="checkbox" ${myData.notify_biorhythm ? 'checked' : ''} onchange="updateNotify('notify_biorhythm', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>💎 Денежные маячки</span><label class="switch"><input type="checkbox" ${myData.notify_money ? 'checked' : ''} onchange="updateNotify('notify_money', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>✨ Совет дня</span><label class="switch"><input type="checkbox" ${myData.notify_advice ? 'checked' : ''} onchange="updateNotify('notify_advice', this.checked)"><span class="slider"></span></label></div>
+                    <div class="setting-item"><span>🌙 Лунный календарь</span><label class="switch"><input type="checkbox" ${myData?.notify_lunar ? 'checked' : ''} onchange="updateNotify('notify_lunar', this.checked)"><span class="slider"></span></label></div>
+                    <div class="setting-item"><span>🧬 Биоритмы</span><label class="switch"><input type="checkbox" ${myData?.notify_biorhythm ? 'checked' : ''} onchange="updateNotify('notify_biorhythm', this.checked)"><span class="slider"></span></label></div>
+                    <div class="setting-item"><span>💎 Деньги</span><label class="switch"><input type="checkbox" ${myData?.notify_money ? 'checked' : ''} onchange="updateNotify('notify_money', this.checked)"><span class="slider"></span></label></div>
+                    <div class="setting-item"><span>✨ Совет дня</span><label class="switch"><input type="checkbox" ${myData?.notify_advice ? 'checked' : ''} onchange="updateNotify('notify_advice', this.checked)"><span class="slider"></span></label></div>
                 `;
-            }
-
-            else if(type === 'advice') {
-                title.innerText = 'СОВЕТ ДНЯ';
-                const text = getDailyText('advice', () => "Сегодня космос настраивает вас на созидание. Оставьте суету и сфокусируйтесь на одной важной цели.");
-                cont.innerHTML = `<div class="ai-section"><b>Ваше послание:</b>\n\n${text}</div>`;
             }
 
             else if(type === 'natal') {
                 title.innerText = 'НАТАЛЬНАЯ КАРТА';
-                const astro = myData?.astrology_data || {};
+                const a = myData?.astrology_data || {};
                 cont.innerHTML = `
-                    <h3>Ваше звездное положение</h3>
+                    <h3>Планеты в знаках</h3>
                     <table class="data-table">
-                        <tr><td>Солнце</td><td>${astro.sun || 'Лев'}</td></tr>
-                        <tr><td>Луна</td><td>${astro.moon || 'Скорпион'}</td></tr>
-                        <tr><td>Меркурий</td><td>${astro.mercury || 'Дева'}</td></tr>
-                        <tr><td>Венера</td><td>${astro.venus || 'Весы'}</td></tr>
-                        <tr><td>Марс</td><td>${astro.mars || 'Козерог'}</td></tr>
-                        <tr><td>Юпитер</td><td>${astro.jupiter || 'Рак'}</td></tr>
-                        <tr><td>Сатурн</td><td>${astro.saturn || 'Овен'}</td></tr>
+                        <tr><td>Солнце</td><td>${a.sun || 'Не определено'}</td></tr>
+                        <tr><td>Луна</td><td>${a.moon || 'Не определено'}</td></tr>
+                        <tr><td>Меркурий</td><td>${a.mercury || 'Не определено'}</td></tr>
+                        <tr><td>Венера</td><td>${a.venus || 'Не определено'}</td></tr>
+                        <tr><td>Марс</td><td>${a.mars || 'Не определено'}</td></tr>
+                        <tr><td>Юпитер</td><td>${a.jupiter || 'Не определено'}</td></tr>
+                        <tr><td>Сатурн</td><td>${a.saturn || 'Не определено'}</td></tr>
                     </table>
-                    <div class="ai-section"><b>Расшифровка ИИ:</b>\nВаша космограмма указывает на гармоничное сочетание воли и интуиции.</div>
                 `;
             }
 
             else if(type === 'hd') {
                 title.innerText = 'ДИЗАЙН ЧЕЛОВЕКА';
                 cont.innerHTML = `
-                    <div class="hd-chart">
-                        <span style="opacity:0.3; font-size: 12px;">ИНФОГРАФИКА БОДИГРАФА (SVG)</span>
-                    </div>
-                    <h3>Ваши ключи дизайна</h3>
+                    <div class="hd-chart"><span style="opacity:0.3">БОДИГРАФ</span></div>
                     <table class="data-table">
                         <tr><td>Тип</td><td>${myData?.hd_type || 'Генератор'}</td></tr>
-                        <tr><td>Профиль</td><td>4/6 (Оппортунист-Ролевая модель)</td></tr>
+                        <tr><td>Профиль</td><td>4/6 (Оппортунист)</td></tr>
                         <tr><td>Авторитет</td><td>Сакральный</td></tr>
                         <tr><td>Стратегия</td><td>Ждать отклика</td></tr>
                         <tr><td>Ложное Я</td><td>Фрустрация</td></tr>
-                        <tr><td>Инкарнационный крест</td><td>Правления (21/48 | 38/39)</td></tr>
+                        <tr><td>Крест</td><td>Правления</td></tr>
                     </table>
-                    <div class="ai-section"><b>Анализ типа:</b>\nВы обладаете неиссякаемым источником жизненной энергии.</div>
                 `;
             }
 
             else if(type === 'finance') {
-                title.innerText = 'ФИНАНСОВЫЙ ПОРТРЕТ';
+                title.innerText = 'ФИНАНСЫ';
                 cont.innerHTML = `
-                    <h3>Код Вашего Изобилия</h3>
                     <table class="data-table">
-                        <tr><td>2-й дом (Личные деньги)</td><td>Телец</td></tr>
-                        <tr><td>Управитель 2-го дома</td><td>Венера</td></tr>
-                        <tr><td>8-й дом (Инвестиции)</td><td>Скорпион</td></tr>
-                        <tr><td>Управитель 8-го дома</td><td>Плутон</td></tr>
-                        <tr><td>Юпитер (Расширение)</td><td>2-й дом</td></tr>
-                        <tr><td>Сатурн (Ограничения)</td><td>10-й дом</td></tr>
+                        <tr><td>2-й дом (Деньги)</td><td>Телец</td></tr>
+                        <tr><td>Управитель 2-го</td><td>Венера</td></tr>
+                        <tr><td>8-й дом (Чужие деньги)</td><td>Скорпион</td></tr>
+                        <tr><td>Управитель 8-го</td><td>Плутон</td></tr>
+                        <tr><td>Юпитер</td><td>2-й дом</td></tr>
+                        <tr><td>Сатурн</td><td>10-й дом</td></tr>
                     </table>
-                    <div class="ai-section"><b>Финансовый совет:</b>\nВаш успех связан с долгосрочным планированием.</div>
                 `;
             }
 
             else if(type === 'horo') {
-                title.innerText = 'ПРОГНОЗ';
+                title.innerText = 'ГОРОСКОП';
                 cont.innerHTML = `
-                    <div class="tabs">
-                        <div class="tab active">Сегодня</div>
-                        <div class="tab">Завтра</div>
-                        <div class="tab">Неделя</div>
-                        <div class="tab">Полгода</div>
-                    </div>
-                    <div class="ai-section">${getDailyText('horo', () => "День принесет новые возможности в карьере.")}</div>
+                    <div class="tabs"><div class="tab active">Сегодня</div><div class="tab">Завтра</div><div class="tab">Неделя</div><div class="tab">Полгода</div></div>
+                    <div class="ai-section">${getDailyText('horo', () => "Сегодня удачный день для планирования.")}</div>
                 `;
             }
 
             else if(type === 'love') {
                 title.innerText = 'СОВМЕСТИМОСТЬ';
                 cont.innerHTML = `
-                    <div id="love-form">
-                        <label>Имя партнера</label><input type="text" id="p-name" placeholder="Введите имя">
-                        <label>Дата рождения</label><input type="date" id="p-date">
-                        <label>Время рождения</label><input type="time" id="p-time">
-                        <label>Город рождения</label><input type="text" id="p-city" placeholder="Город">
-                        <button class="btn btn-full" onclick="calculateLove()">Проверить синастрию</button>
-                    </div>
-                    <div id="love-result" style="display:none;" class="ai-section"></div>
+                    <label>Имя партнера</label><input type="text" id="p-name">
+                    <label>Дата рождения</label><input type="date" id="p-date">
+                    <label>Время</label><input type="time" id="p-time">
+                    <label>Город</label><input type="text" id="p-city">
+                    <button class="btn btn-full" onclick="calcLove()">Рассчитать союз</button>
+                    <div id="l-res" style="display:none;" class="ai-section"></div>
                 `;
+            }
+
+            else if(type === 'advice') {
+                title.innerText = 'СОВЕТ ДНЯ';
+                cont.innerHTML = `<div class="ai-section">${getDailyText('adv', () => "Доверяйте внутреннему голосу.")}</div>`;
             }
         }
 
-        function calculateLove() {
-            const name = document.getElementById('p-name').value;
-            if(!name) return tg.showAlert("Введите имя");
-            document.getElementById('love-form').style.display = 'none';
-            const res = document.getElementById('love-result');
-            res.style.display = 'block';
-            res.innerHTML = "✨ <b>Анализ...</b>";
-            setTimeout(() => { res.innerHTML = `<h3>Союз с ${name}</h3>85% совместимости по Венере и Луне.`; }, 1500);
+        function calcLove() {
+            const n = document.getElementById('p-name').value;
+            if(!n) return;
+            const r = document.getElementById('l-res');
+            r.style.display = 'block'; r.innerHTML = "Анализ...";
+            setTimeout(() => { r.innerHTML = `<b>Совместимость с ${n}: 88%</b><br>Ваши души резонируют на одной частоте.`; }, 1000);
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
