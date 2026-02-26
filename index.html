@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Astro System Full</title>
+    <title>Astro System Premium</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --glass: rgba(255, 255, 255, 0.08); --accent: #a29bfe; --bg: #0a0b10; --card-bg: #161b22; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
+        body { margin: 0; background: var(--bg); color: white; font-family: -apple-system, sans-serif; overflow-x: hidden; }
         
         #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
         .spinner { width: 35px; height: 35px; border: 3px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
@@ -26,17 +26,17 @@
         .modal-content { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 100px; }
         .modal-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; background: #111; border-bottom: 1px solid #222; }
         
-        .ai-section { background: rgba(255, 255, 255, 0.03); border-left: 3px solid var(--accent); padding: 15px; margin-top: 20px; line-height: 1.6; white-space: pre-wrap; }
+        .ai-section { background: rgba(255, 255, 255, 0.03); border-left: 3px solid var(--accent); padding: 15px; margin-top: 20px; line-height: 1.6; white-space: pre-wrap; border-radius: 0 10px 10px 0; }
         .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .data-table td { padding: 12px 0; border-bottom: 1px solid #222; font-size: 14px; }
         .data-table td:last-child { text-align: right; color: var(--accent); font-weight: bold; }
 
-        .tabs { display: flex; gap: 10px; margin: 15px 0; overflow-x: auto; }
-        .tab { padding: 10px 18px; background: var(--glass); border-radius: 20px; font-size: 12px; white-space: nowrap; }
-        .tab.active { background: var(--accent); color: black; }
+        .tabs { display: flex; gap: 10px; margin: 15px 0; overflow-x: auto; padding-bottom: 5px; }
+        .tab { padding: 10px 18px; background: var(--glass); border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
+        .tab.active { background: var(--accent); color: black; font-weight: bold; }
 
-        input { width: 100%; padding: 15px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 12px; box-sizing: border-box; }
-        label { font-size: 12px; opacity: 0.5; margin-left: 5px; }
+        input { width: 100%; padding: 15px; margin: 8px 0 15px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 12px; box-sizing: border-box; font-size: 14px; }
+        label { font-size: 12px; opacity: 0.7; margin-left: 5px; font-weight: bold; color: var(--accent); }
     </style>
 </head>
 <body>
@@ -62,7 +62,7 @@
 
     <div id="modal">
         <div class="modal-header">
-            <b id="m-title" style="letter-spacing: 1px;">РАЗБОР</b>
+            <b id="m-title" style="letter-spacing: 1px; font-size: 14px;">РАЗБОР</b>
             <span onclick="closeModal()" style="font-size: 30px; cursor: pointer;">&times;</span>
         </div>
         <div id="m-content" class="modal-content"></div>
@@ -108,80 +108,121 @@
 
             if(type === 'advice') {
                 title.innerText = 'СОВЕТ ДНЯ';
-                const text = getDailyText('advice', () => "Сегодня ваш день наполнен энергией созидания. Сфокусируйтесь на завершении старых дел. ИИ рекомендует уделить 15 минут тишине.");
-                cont.innerHTML = `<div class="ai-section"><b>Ваш персональный совет:</b>\n\n${text}</div>`;
+                const text = getDailyText('advice', () => "Сегодня ваш день наполнен энергией созидания. Сфокусируйтесь на завершении старых дел. ИИ рекомендует уделить 15 минут тишине для калибровки внутренних целей.");
+                cont.innerHTML = `<div class="ai-section"><b>Ваш персональный совет на сегодня:</b>\n\n${text}</div>`;
             }
 
             else if(type === 'natal') {
                 title.innerText = 'НАТАЛЬНАЯ КАРТА';
                 const astro = myData?.astrology_data || {};
                 cont.innerHTML = `
-                    <h3>Положения планет</h3>
+                    <h3>Ваше звездное положение</h3>
                     <table class="data-table">
                         <tr><td>Солнце</td><td>${astro.sun || 'Лев'}</td></tr>
                         <tr><td>Луна</td><td>${astro.moon || 'Скорпион'}</td></tr>
                         <tr><td>Меркурий</td><td>${astro.mercury || 'Дева'}</td></tr>
+                        <tr><td>Венера</td><td>${astro.venus || 'Весы'}</td></tr>
+                        <tr><td>Марс</td><td>${astro.mars || 'Стрелец'}</td></tr>
                     </table>
-                    <div class="ai-section"><b>Разбор от ИИ:</b>\nВаша натальная карта говорит о сильном потенциале в самореализации...</div>
+                    <div class="ai-section"><b>Расшифровка ИИ:</b>\nВаша натальная карта указывает на сильную личность с развитой интуицией. Положение планет способствует успехам в творчестве и коммуникациях.</div>
                 `;
             }
 
             else if(type === 'hd') {
                 title.innerText = 'ДИЗАЙН ЧЕЛОВЕКА';
                 cont.innerHTML = `
-                    <div style="width:100%; height:150px; background:var(--glass); border-radius:15px; display:flex; align-items:center; justify-content:center;">[SVG Бодиграф]</div>
+                    <div style="width:100%; height:180px; background:var(--glass); border-radius:20px; display:flex; align-items:center; justify-content:center; margin-bottom:15px;">
+                        <span style="opacity:0.3;">[Инфографика Бодиграфа]</span>
+                    </div>
+                    <h3>Параметры дизайна</h3>
                     <table class="data-table">
                         <tr><td>Тип</td><td>${myData?.hd_type || 'Генератор'}</td></tr>
+                        <tr><td>Профиль</td><td>4/6</td></tr>
                         <tr><td>Авторитет</td><td>Сакральный</td></tr>
+                        <tr><td>Стратегия</td><td>Откликаться</td></tr>
                     </table>
-                    <div class="ai-section"><b>Ваша стратегия:</b>\nДоверяйте внутреннему отклику, а не логическим доводам ума...</div>
+                    <div class="ai-section"><b>Анализ вашего типа:</b>\nКак ${myData?.hd_type || 'Генератор'}, вы обладаете мощным источником энергии. Важно слушать свой 'отклик' прежде чем приступать к новым делам.</div>
                 `;
             }
 
             else if(type === 'finance') {
                 title.innerText = 'ФИНАНСОВЫЙ ПОРТРЕТ';
                 cont.innerHTML = `
-                    <h3>Ключи изобилия</h3>
+                    <h3>Ваш код изобилия</h3>
                     <table class="data-table">
-                        <tr><td>Денежный дом</td><td>2-й дом</td></tr>
-                        <tr><td>Сфера успеха</td><td>Технологии</td></tr>
+                        <tr><td>2-й дом (Деньги)</td><td>Телец</td></tr>
+                        <tr><td>8-й дом (Чужие ресурсы)</td><td>Скорпион</td></tr>
+                        <tr><td>Управитель 2-го дома</td><td>Венера</td></tr>
+                        <tr><td>Планета в 2-м доме</td><td>Юпитер</td></tr>
                     </table>
-                    <div class="ai-section">ИИ: Ваш финансовый код активируется через партнерство и инновации...</div>
+                    <div class="ai-section"><b>Финансовая стратегия от ИИ:</b>\nВаш успех заложен в материализации идей через системный подход. Благоприятные сферы: инвестиции, недвижимость и консалтинг.</div>
                 `;
             }
 
             else if(type === 'horo') {
                 title.innerText = 'ГОРОСКОП';
-                const text = getDailyText('horo', () => "Юпитер входит в ваш сектор удачи. Благоприятный день для финансовых вложений и крупных покупок.");
+                const text = getDailyText('horo', () => "Юпитер входит в ваш сектор удачи. Благоприятный день для начала новых проектов и важных встреч.");
                 cont.innerHTML = `
-                    <div class="tabs"><div class="tab active">Сегодня</div><div class="tab">Завтра</div><div class="tab">Неделя</div></div>
-                    <div class="ai-section">${text}</div>
+                    <div class="tabs">
+                        <div class="tab active">Сегодня</div>
+                        <div class="tab">Завтра</div>
+                        <div class="tab">Неделя</div>
+                        <div class="tab">Полгода</div>
+                    </div>
+                    <div class="ai-section"><b>Прогноз:</b>\n${text}</div>
                 `;
             }
 
             else if(type === 'love') {
-                title.innerText = 'СОВМЕСТИМОСТЬ';
+                title.innerText = 'СОВМЕСТИМОСТЬ ПАРТНЕРОВ';
                 cont.innerHTML = `
-                    <div id="love-form" class="card">
-                        <label>Имя партнера</label><input type="text" id="p-name" placeholder="Введите имя">
-                        <label>Дата рождения</label><input type="date" id="p-date">
-                        <button class="btn btn-full" onclick="calculateLove()">Рассчитать</button>
+                    <div id="love-form">
+                        <div class="card" style="margin-top:10px; background: rgba(255,255,255,0.02);">
+                            <label>Имя партнера</label>
+                            <input type="text" id="p-name" placeholder="Как зовут партнера?">
+                            
+                            <label>Дата рождения</label>
+                            <input type="date" id="p-date">
+                            
+                            <label>Время рождения</label>
+                            <input type="time" id="p-time">
+                            
+                            <label>Город рождения</label>
+                            <input type="text" id="p-city" placeholder="В каком городе родился?">
+                            
+                            <button class="btn btn-full" onclick="calculateLove()" style="width:100%; margin-top:10px;">Проверить совместимость</button>
+                        </div>
                     </div>
-                    <div id="love-result" class="ai-section" style="display:none;"></div>
+                    <div id="love-result" style="display:none;">
+                        <div class="ai-section" id="love-ai-text"></div>
+                        <button class="btn" onclick="openModule('love')" style="width:100%; margin-top:15px;">Рассчитать для другого человека</button>
+                    </div>
                 `;
             }
         }
 
         function calculateLove() {
             const name = document.getElementById('p-name').value;
-            if(!name) return tg.showAlert("Введите имя");
+            const date = document.getElementById('p-date').value;
+            const city = document.getElementById('p-city').value;
+            
+            if(!name || !date || !city) return tg.showAlert("Пожалуйста, заполните Имя, Дату и Город партнера");
+            
             document.getElementById('love-form').style.display = 'none';
             const res = document.getElementById('love-result');
+            const aiText = document.getElementById('love-ai-text');
             res.style.display = 'block';
-            res.innerHTML = "✨ <b>Анализ совместимости...</b>";
+            aiText.innerHTML = "✨ <b>Звезды начинают танец...</b>\nАнализируем совместимость ваших натальных карт...";
+            
             setTimeout(() => {
-                res.innerHTML = `<h3>Союз с партнером ${name}</h3>Ваши натальные карты имеют 85% гармонии. Основной акцент в отношениях — интеллектуальный обмен.`;
-            }, 1500);
+                aiText.innerHTML = `
+                    <h3>Союз с ${name}</h3>
+                    <p>❤️ <b>Любовь: 85%</b>. Ваши Венеры создают гармоничный аспект.</p>
+                    <p>💼 <b>Дела: 70%</b>. Хорошая база для общих целей.</p>
+                    <hr border="0" style="border-top:1px solid #333; margin:15px 0;">
+                    <b>ИИ-анализ:</b> Ваши энергии дополняют друг друга. Вы — те люди, которые могут вдохновлять друг друга на великие свершения, несмотря на мелкие бытовые разногласия.
+                `;
+            }, 1800);
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
