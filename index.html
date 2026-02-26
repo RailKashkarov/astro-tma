@@ -6,102 +6,73 @@
     <title>Astro TMA</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
-        :root { --glass: rgba(255, 255, 255, 0.1); --accent: #8a2be2; }
-        body { 
-            margin: 0; 
-            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%); 
-            color: white; 
-            font-family: 'Segoe UI', sans-serif; 
-            text-align: center; 
-            height: 100vh; 
-            overflow: hidden;
-        }
-        
-        /* Лоадер */
-        #loader { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #000; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; z-index: 9999; 
-        }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Контент */
-        #app-content { display: none; padding: 20px; opacity: 0; transition: 0.5s; }
-        .card { background: var(--glass); padding: 20px; border-radius: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn { background: var(--glass); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+        :root { --glass: rgba(255, 255, 255, 0.1); --accent: #a29bfe; }
+        body { margin: 0; background: #0a0b10; color: white; font-family: sans-serif; overflow: hidden; }
+        #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
+        #app { display: none; padding: 20px; text-align: center; }
+        .card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 25px; margin: 20px 0; backdrop-filter: blur(10px); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn { background: var(--glass); padding: 20px 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
     </style>
 </head>
 <body>
+    <div id="loader"><div class="spinner"></div><p>Загрузка звезд...</p></div>
 
-    <div id="loader">
-        <div class="spinner"></div>
-        <p>Настройка звезд...</p>
-    </div>
-
-    <div id="app-content">
-        <h1 style="font-weight: 300; letter-spacing: 2px;">ASTRO SYSTEM</h1>
+    <div id="app">
+        <h2 style="font-weight: 200; letter-spacing: 4px;">ASTRO SYSTEM</h2>
         <div class="card">
-            <h2 id="user-name">Загрузка...</h2>
-            <p id="user-info" style="opacity:0.6;">Синхронизация...</p>
+            <div id="u-name" style="font-size: 22px; font-weight: bold;">Странник</div>
+            <div id="u-info" style="font-size: 13px; opacity: 0.6; margin-top: 10px;">Синхронизация...</div>
         </div>
         <div class="grid">
-            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Разбор готовится...')">🪐 Натал</div>
-            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Разбор готовится...')">🧬 Дизайн</div>
-            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Разбор готовится...')">💎 Финансы</div>
-            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Разбор готовится...')">🔮 Прогноз</div>
+            <div class="btn" onclick="tg.showAlert('ИИ анализирует натальную карту...')">🪐 Натал</div>
+            <div class="btn" onclick="tg.showAlert('Ваш тип: ' + (window.userType || 'в обработке'))">🧬 Дизайн</div>
+            <div class="btn" onclick="tg.showAlert('Финансовый канал настраивается...')">💎 Финансы</div>
+            <div class="btn" onclick="tg.showAlert('Прогноз на сегодня готовится...')">🔮 Прогноз</div>
         </div>
     </div>
 
     <script>
-        // Конфигурация
-        const URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-        const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbW51cXp2ZGd4YWRpc2p0YXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTMyMjcsImV4cCI6MjA4NzU4OTIyN30.3iHv_nhBdPZB_sT4TSDSynsu9jEHVDjihV3bLvehcJQ";
-
         const tg = window.Telegram.WebApp;
+        const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
+        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbW51cXp2ZGd4YWRpc2p0YXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTMyMjcsImV4cCI6MjA4NzU4OTIyN30.3iHv_nhBdPZB_sT4TSDSynsu9jEHVDjihV3bLvehcJQ";
 
-        function showApp() {
-            document.getElementById('loader').style.display = 'none';
-            const content = document.getElementById('app-content');
-            content.style.display = 'block';
-            setTimeout(() => content.style.opacity = "1", 50);
-        }
-
-        async function start() {
+        async function init() {
             tg.ready();
             tg.expand();
-
+            
             try {
-                const sb = supabase.createClient(URL, KEY);
+                const sb = supabase.createClient(S_URL, S_KEY);
                 const user = tg.initDataUnsafe?.user;
 
                 if (user) {
-                    // Ищем тебя в базе
-                    const { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
-                    
+                    const { data, error } = await sb
+                        .from('users')
+                        .select('username, birth_date, birth_city, hd_type')
+                        .eq('telegram_id', user.id)
+                        .maybeSingle();
+
                     if (data) {
-                        document.getElementById('user-name').innerText = data.name || user.first_name;
-                        document.getElementById('user-info').innerText = `${data.birth_date || ''} • ${data.city || ''}`;
+                        document.getElementById('u-name').innerText = data.username || user.first_name;
+                        document.getElementById('u-info').innerText = `${data.birth_date || ''} • ${data.birth_city || ''}`;
+                        window.userType = data.hd_type; // Сохраним тип для кнопки
                     } else {
-                        document.getElementById('user-name').innerText = user.first_name;
-                        document.getElementById('user-info').innerText = "Профиль не найден в базе";
+                        document.getElementById('u-info').innerText = "Профиль не найден в базе";
                     }
-                } else {
-                    document.getElementById('user-name').innerText = "Демо-пользователь";
                 }
             } catch (e) {
                 console.error(e);
             } finally {
-                // В ЛЮБОМ СЛУЧАЕ открываем приложение
-                showApp();
+                // Всегда показываем интерфейс
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                document.getElementById('app').style.opacity = '1';
             }
         }
-
-        // Запуск через 300мс
-        setTimeout(start, 300);
+        init();
     </script>
 </body>
 </html>
