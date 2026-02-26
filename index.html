@@ -34,7 +34,6 @@
         .data-table td { padding: 14px 0; border-bottom: 1px solid #222; font-size: 14px; }
         .data-table td:last-child { text-align: right; color: var(--accent); font-weight: bold; }
 
-        /* Переключатели */
         .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #222; }
         .switch { position: relative; display: inline-block; width: 48px; height: 26px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -49,6 +48,9 @@
 
         input[type="text"], input[type="date"], input[type="time"] { width: 100%; padding: 16px; margin: 8px 0 16px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 14px; box-sizing: border-box; }
         label { font-size: 12px; opacity: 0.8; margin-left: 5px; color: var(--accent); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* Стиль для инфографики HD */
+        .hd-chart { width: 100%; height: 200px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -92,7 +94,7 @@
                 sb = supabase.createClient(S_URL, S_KEY);
                 const user = tg.initDataUnsafe?.user;
                 if(user) {
-                    const { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+                    const { data } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
                     if(data) { 
                         myData = data; 
                         document.getElementById('u-name').innerText = data.username || user.first_name;
@@ -116,8 +118,7 @@
 
         async function updateNotify(field, value) {
             myData[field] = value;
-            const { error } = await sb.from('users').update({ [field]: value }).eq('telegram_id', myData.telegram_id);
-            if (error) tg.showAlert("Ошибка сохранения настроек");
+            await sb.from('users').update({ [field]: value }).eq('telegram_id', myData.telegram_id);
         }
 
         function openModule(type) {
@@ -139,53 +140,65 @@
 
             else if(type === 'advice') {
                 title.innerText = 'СОВЕТ ДНЯ';
-                const text = getDailyText('advice', () => "Сегодня космос настраивает вас на созидание. Оставьте суету и сфокусируйтесь на одной важной цели. Успех придет через терпение.");
-                cont.innerHTML = `<div class="ai-section"><b>Ваше послание на сегодня:</b>\n\n${text}</div>`;
+                const text = getDailyText('advice', () => "Сегодня космос настраивает вас на созидание. Оставьте суету и сфокусируйтесь на одной важной цели.");
+                cont.innerHTML = `<div class="ai-section"><b>Ваше послание:</b>\n\n${text}</div>`;
             }
 
             else if(type === 'natal') {
                 title.innerText = 'НАТАЛЬНАЯ КАРТА';
                 const astro = myData?.astrology_data || {};
                 cont.innerHTML = `
-                    <h3>Ваша космограмма</h3>
+                    <h3>Ваше звездное положение</h3>
                     <table class="data-table">
-                        <tr><td>Солнце (Личность)</td><td>${astro.sun || 'Лев'}</td></tr>
-                        <tr><td>Луна (Душа)</td><td>${astro.moon || 'Скорпион'}</td></tr>
-                        <tr><td>Венера (Любовь)</td><td>${astro.venus || 'Весы'}</td></tr>
-                        <tr><td>Марс (Действие)</td><td>${astro.mars || 'Козерог'}</td></tr>
+                        <tr><td>Солнце</td><td>${astro.sun || 'Лев'}</td></tr>
+                        <tr><td>Луна</td><td>${astro.moon || 'Скорпион'}</td></tr>
+                        <tr><td>Меркурий</td><td>${astro.mercury || 'Дева'}</td></tr>
+                        <tr><td>Венера</td><td>${astro.venus || 'Весы'}</td></tr>
+                        <tr><td>Марс</td><td>${astro.mars || 'Козерог'}</td></tr>
+                        <tr><td>Юпитер</td><td>${astro.jupiter || 'Рак'}</td></tr>
+                        <tr><td>Сатурн</td><td>${astro.saturn || 'Овен'}</td></tr>
                     </table>
-                    <div class="ai-section"><b>Расшифровка:</b>\nВаше положение планет говорит о глубоком эмоциональном интеллекте и способности влиять на окружающих.</div>
+                    <div class="ai-section"><b>Расшифровка ИИ:</b>\nВаша космограмма указывает на гармоничное сочетание воли и интуиции.</div>
                 `;
             }
 
             else if(type === 'hd') {
                 title.innerText = 'ДИЗАЙН ЧЕЛОВЕКА';
                 cont.innerHTML = `
+                    <div class="hd-chart">
+                        <span style="opacity:0.3; font-size: 12px;">ИНФОГРАФИКА БОДИГРАФА (SVG)</span>
+                    </div>
+                    <h3>Ваши ключи дизайна</h3>
                     <table class="data-table">
                         <tr><td>Тип</td><td>${myData?.hd_type || 'Генератор'}</td></tr>
-                        <tr><td>Профиль</td><td>4/6</td></tr>
-                        <tr><td>Внутренний Авторитет</td><td>Сакральный</td></tr>
-                        <tr><td>Стратегия</td><td>Откликаться</td></tr>
+                        <tr><td>Профиль</td><td>4/6 (Оппортунист-Ролевая модель)</td></tr>
+                        <tr><td>Авторитет</td><td>Сакральный</td></tr>
+                        <tr><td>Стратегия</td><td>Ждать отклика</td></tr>
+                        <tr><td>Ложное Я</td><td>Фрустрация</td></tr>
+                        <tr><td>Инкарнационный крест</td><td>Правления (21/48 | 38/39)</td></tr>
                     </table>
-                    <div class="ai-section">Как ${myData?.hd_type || 'Генератор'}, вы здесь, чтобы созидать. Не инициируйте, ждите отклика Вселенной.</div>
+                    <div class="ai-section"><b>Анализ типа:</b>\nВы обладаете неиссякаемым источником жизненной энергии.</div>
                 `;
             }
 
             else if(type === 'finance') {
                 title.innerText = 'ФИНАНСОВЫЙ ПОРТРЕТ';
                 cont.innerHTML = `
-                    <h3>Код Изобилия</h3>
+                    <h3>Код Вашего Изобилия</h3>
                     <table class="data-table">
                         <tr><td>2-й дом (Личные деньги)</td><td>Телец</td></tr>
-                        <tr><td>8-й дом (Большие деньги)</td><td>Скорпион</td></tr>
-                        <tr><td>Планета богатства</td><td>Юпитер</td></tr>
+                        <tr><td>Управитель 2-го дома</td><td>Венера</td></tr>
+                        <tr><td>8-й дом (Инвестиции)</td><td>Скорпион</td></tr>
+                        <tr><td>Управитель 8-го дома</td><td>Плутон</td></tr>
+                        <tr><td>Юпитер (Расширение)</td><td>2-й дом</td></tr>
+                        <tr><td>Сатурн (Ограничения)</td><td>10-й дом</td></tr>
                     </table>
-                    <div class="ai-section">Ваш финансовый поток активируется через стабильность и долгосрочные инвестиции. Избегайте импульсивных трат.</div>
+                    <div class="ai-section"><b>Финансовый совет:</b>\nВаш успех связан с долгосрочным планированием.</div>
                 `;
             }
 
             else if(type === 'horo') {
-                title.innerText = 'АСТРО-ПРОГНОЗ';
+                title.innerText = 'ПРОГНОЗ';
                 cont.innerHTML = `
                     <div class="tabs">
                         <div class="tab active">Сегодня</div>
@@ -193,7 +206,7 @@
                         <div class="tab">Неделя</div>
                         <div class="tab">Полгода</div>
                     </div>
-                    <div class="ai-section">${getDailyText('horo', () => "Энергии дня способствуют переговорам. Вторая половина дня принесет приятное финансовое известие.")}</div>
+                    <div class="ai-section">${getDailyText('horo', () => "День принесет новые возможности в карьере.")}</div>
                 `;
             }
 
@@ -214,14 +227,12 @@
 
         function calculateLove() {
             const name = document.getElementById('p-name').value;
-            if(!name) return tg.showAlert("Введите хотя бы имя партнера");
-            const res = document.getElementById('love-result');
+            if(!name) return tg.showAlert("Введите имя");
             document.getElementById('love-form').style.display = 'none';
+            const res = document.getElementById('love-result');
             res.style.display = 'block';
-            res.innerHTML = "✨ <b>Наложение карт...</b>";
-            setTimeout(() => {
-                res.innerHTML = `<h3>Совместимость с ${name}</h3><p>❤️ <b>Любовь: 85%</b></p><p>🤝 <b>Дружба: 92%</b></p><hr border="0" style="border-top:1px solid #333; margin:10px 0;">Вы прекрасно дополняете друг друга в интеллектуальном плане.`;
-            }, 1500);
+            res.innerHTML = "✨ <b>Анализ...</b>";
+            setTimeout(() => { res.innerHTML = `<h3>Союз с ${name}</h3>85% совместимости по Венере и Луне.`; }, 1500);
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
