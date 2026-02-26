@@ -1,61 +1,68 @@
-// ПРОВЕРЬ ЭТИ ЗНАЧЕНИЯ!
 const URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-const KEY = "sb_publishable_1vKg8mcLku8wGriVT_GeCg_fy8u84o-";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbW51cXp2ZGd4YWRpc2p0YXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTMyMjcsImV4cCI6MjA4NzU4OTIyN30.3iHv_nhBdPZB_sT4TSDSynsu9jEHVDjihV3bLvehcJQ"; 
 
-// Используем другое имя переменной, чтобы не путать с библиотекой
-const sbClient = supabase.createClient(URL, KEY);
 const tg = window.Telegram.WebApp;
+const sbClient = supabase.createClient(URL, KEY);
 
 async function startApp() {
-    console.log("Приложение запускается...");
+    // Сообщаем Telegram, что приложение готово к отрисовке
+    tg.ready();
+    tg.expand();
+
+    const user = tg.initDataUnsafe?.user;
+    const nameElement = document.getElementById('user-name');
+    const infoElement = document.getElementById('user-info');
+
     try {
-        tg.ready();
-        tg.expand();
-
-        const user = tg.initDataUnsafe?.user;
-
         if (user) {
-            console.log("ID пользователя из TG:", user.id);
-            
-            // Пробуем получить данные
+            // Запрос данных пользователя по его Telegram ID
             const { data, error } = await sbClient
                 .from('users')
                 .select('*')
                 .eq('telegram_id', user.id)
                 .single();
 
-            if (error) {
-                console.warn("Данные в БД не найдены или ошибка:", error.message);
-                document.getElementById('user-name').innerText = user.first_name || "Странник";
-                document.getElementById('user-info').innerText = "Профиль еще не создан в боте";
-            } else if (data) {
-                console.log("Данные из БД получены:", data);
-                document.getElementById('user-name').innerText = data.name || user.first_name;
-                document.getElementById('user-info').innerText = `${data.birth_date} • ${data.city}`;
+            if (error) throw error;
+
+            if (data) {
+                // Если данные найдены, выводим имя и инфо из БД
+                nameElement.innerText = data.name || user.first_name;
+                infoElement.innerText = `${data.birth_date} • ${data.city}`;
+            } else {
+                // Если записи нет, показываем данные из Telegram
+                nameElement.innerText = user.first_name;
+                infoElement.innerText = "Профиль не заполнен. Вернитесь в бота.";
             }
         } else {
-            document.getElementById('user-name').innerText = "Тестовый режим";
-            document.getElementById('user-info').innerText = "Зайдите через Telegram бота";
+            // Для открытия в обычном браузере (тест)
+            nameElement.innerText = "Звездный Странник";
+            infoElement.innerText = "Демо-режим (вне Telegram)";
         }
-
     } catch (e) {
-        console.error("Критическая ошибка фронтенда:", e);
-        document.getElementById('loader-text').innerText = "Ошибка связи: " + e.message;
+        console.error("Ошибка Supabase:", e);
+        if (user) nameElement.innerText = user.first_name;
+        infoElement.innerText = "Синхронизация временно недоступна";
     } finally {
-        // Убираем анимацию загрузки В ЛЮБОМ СЛУЧАЕ через 1.5 секунды
-        setTimeout(() => {
-            document.getElementById('loader').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('app-content').classList.add('show');
-            }, 500);
-        }, 1500);
+        // Убираем лоадер с задержкой для плавности
+        setTimeout(hideLoader, 1000);
     }
 }
 
-function openModule(m) {
-    tg.showAlert(`Модуль ${m} настраивается. ИИ готовит ваш разбор!`);
+function hideLoader() {
+    const loader = document.getElementById('loader');
+    const content = document.getElementById('app-content');
+    
+    loader.style.opacity = "0";
+    setTimeout(() => {
+        loader.style.display = 'none';
+        content.style.display = 'block';
+        setTimeout(() => content.style.opacity = "1", 50);
+    }, 500);
 }
 
-// Запуск
+function openModule(m) {
+    tg.showAlert(`Модуль "${m}" настраивается. ИИ готовит ваш персональный разбор!`);
+}
+
+// Запуск приложения
 startApp();
