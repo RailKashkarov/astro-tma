@@ -9,8 +9,17 @@
     
     <style>
         :root { --glass: rgba(255, 255, 255, 0.1); --accent: #8a2be2; }
-        body { margin: 0; background: #090a0f; color: white; font-family: sans-serif; text-align: center; }
+        body { 
+            margin: 0; 
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%); 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            text-align: center; 
+            height: 100vh; 
+            overflow: hidden;
+        }
         
+        /* Лоадер */
         #loader { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: #000; display: flex; flex-direction: column; 
@@ -19,72 +28,80 @@
         .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        #app-content { display: none; padding: 20px; }
-        .card { background: var(--glass); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { background: var(--glass); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
-        
-        #debug-log { font-size: 10px; color: #ff4444; margin-top: 20px; }
+        /* Контент */
+        #app-content { display: none; padding: 20px; opacity: 0; transition: 0.5s; }
+        .card { background: var(--glass); padding: 20px; border-radius: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn { background: var(--glass); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="loader">
         <div class="spinner"></div>
-        <p>Синхронизация...</p>
-        <div id="debug-log"></div>
+        <p>Настройка звезд...</p>
     </div>
 
     <div id="app-content">
-        <h1>ASTRO SYSTEM</h1>
+        <h1 style="font-weight: 300; letter-spacing: 2px;">ASTRO SYSTEM</h1>
         <div class="card">
             <h2 id="user-name">Загрузка...</h2>
-            <p id="user-info">...</p>
+            <p id="user-info" style="opacity:0.6;">Синхронизация...</p>
         </div>
         <div class="grid">
-            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Скоро!')">🪐 Натал</div>
-            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Скоро!')">🧬 Дизайн</div>
-            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Скоро!')">💎 Финансы</div>
-            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Скоро!')">🔮 Прогноз</div>
+            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Разбор готовится...')">🪐 Натал</div>
+            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Разбор готовится...')">🧬 Дизайн</div>
+            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Разбор готовится...')">💎 Финансы</div>
+            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Разбор готовится...')">🔮 Прогноз</div>
         </div>
     </div>
 
     <script>
-        // ВСЯ ЛОГИКА ТУТ, чтобы кеш не мешал
+        // Конфигурация
         const URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
         const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbW51cXp2ZGd4YWRpc2p0YXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTMyMjcsImV4cCI6MjA4NzU4OTIyN30.3iHv_nhBdPZB_sT4TSDSynsu9jEHVDjihV3bLvehcJQ";
 
         const tg = window.Telegram.WebApp;
 
-        async function start() {
-            try {
-                tg.ready();
-                tg.expand();
+        function showApp() {
+            document.getElementById('loader').style.display = 'none';
+            const content = document.getElementById('app-content');
+            content.style.display = 'block';
+            setTimeout(() => content.style.opacity = "1", 50);
+        }
 
+        async function start() {
+            tg.ready();
+            tg.expand();
+
+            try {
                 const sb = supabase.createClient(URL, KEY);
                 const user = tg.initDataUnsafe?.user;
 
                 if (user) {
+                    // Ищем тебя в базе
                     const { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+                    
                     if (data) {
                         document.getElementById('user-name').innerText = data.name || user.first_name;
-                        document.getElementById('user-info').innerText = (data.birth_date || "") + " • " + (data.city || "");
+                        document.getElementById('user-info').innerText = `${data.birth_date || ''} • ${data.city || ''}`;
                     } else {
                         document.getElementById('user-name').innerText = user.first_name;
-                        document.getElementById('user-info').innerText = "Профиль не найден";
+                        document.getElementById('user-info').innerText = "Профиль не найден в базе";
                     }
+                } else {
+                    document.getElementById('user-name').innerText = "Демо-пользователь";
                 }
             } catch (e) {
-                document.getElementById('debug-log').innerText = "Ошибка: " + e.message;
+                console.error(e);
             } finally {
-                // ПРИНУДИТЕЛЬНО СКРЫВАЕМ ЛОАДЕР
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('app-content').style.display = 'block';
+                // В ЛЮБОМ СЛУЧАЕ открываем приложение
+                showApp();
             }
         }
 
-        // Запускаем через небольшую паузу
-        setTimeout(start, 500);
+        // Запуск через 300мс
+        setTimeout(start, 300);
     </script>
 </body>
 </html>
