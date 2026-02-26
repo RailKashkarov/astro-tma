@@ -7,68 +7,144 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #0b0e14; color: white; font-family: sans-serif; text-align: center; padding-top: 30px; }
-        .card { background: #161b22; border-radius: 20px; padding: 25px; margin: 15px; border: 1px solid #30363d; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-        .badge { background: #7d5fff; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 15px; display: inline-block; }
-        .data-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #21262d; }
-        .data-label { color: #8b949e; font-size: 13px; }
-        .data-value { font-weight: bold; color: #ffffff; }
-        h1 { font-size: 22px; margin-bottom: 20px; }
+        body { 
+            background: #0b0e14; 
+            color: white; 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            text-align: center; 
+            padding: 20px;
+            margin: 0;
+        }
+        .card { 
+            background: #161b22; 
+            border-radius: 24px; 
+            padding: 30px 20px; 
+            margin-top: 20px;
+            border: 1px solid #30363d; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
+        }
+        .badge { 
+            background: #7d5fff; 
+            padding: 6px 16px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-bottom: 20px; 
+            display: inline-block; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .user-name { 
+            font-size: 26px; 
+            font-weight: 800; 
+            margin: 0 0 25px 0; 
+            background: linear-gradient(90deg, #fff, #7d5fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .data-list {
+            text-align: left;
+            margin-top: 10px;
+        }
+        .data-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 12px 0; 
+            border-bottom: 1px solid #21262d; 
+        }
+        .data-label { 
+            color: #8b949e; 
+            font-size: 14px; 
+        }
+        .data-value { 
+            font-weight: 600; 
+            color: #ffffff; 
+            font-size: 14px;
+        }
+        .zodiac-highlight {
+            color: #7d5fff !important;
+            font-size: 18px !important;
+            font-weight: 800;
+        }
     </style>
 </head>
 <body>
+
     <div class="card">
-        <div id="status_badge" class="badge">Данные загружаются...</div>
-        <h1 id="u_name">Пользователь</h1>
+        <div id="status_badge" class="badge">Загрузка...</div>
+        <h1 id="u_name" class="user-name">Пользователь</h1>
         
-        <div class="data-row">
-            <span class="data-label">Дата:</span>
-            <span id="b_date" class="data-value">--.--.----</span>
-        </div>
-        <div class="data-row">
-            <span class="data-label">Время:</span>
-            <span id="b_time" class="data-value">--:--</span>
-        </div>
-        <div class="data-row">
-            <span class="data-label">Город:</span>
-            <span id="b_city" class="data-value">Не указан</span>
-        </div>
-        <div class="data-row">
-            <span class="data-label">Знак:</span>
-            <span id="z_sign" class="data-value" style="color: #7d5fff;">...</span>
+        <div class="data-list">
+            <div class="data-row">
+                <span class="data-label">Дата и время</span>
+                <span id="b_datetime" class="data-value">--.--.---- --:--</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Город рождения</span>
+                <span id="b_city" class="data-value">--</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Координаты</span>
+                <span id="coords" class="data-value" style="color: #8b949e; font-family: monospace;">0.00, 0.00</span>
+            </div>
+            <div class="data-row" style="border-bottom: none; margin-top: 10px;">
+                <span class="data-label">Твой знак</span>
+                <span id="z_sign" class="data-value zodiac-highlight">--</span>
+            </div>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.ready();
 
+        // Твои настройки Supabase
         const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-        const S_KEY = "sb_publishable_1vKg8mcLku8wGriVT_GeCg_fy8u84o-"; // Вставь сюда свой ключ
+        const S_KEY = "sb_publishable_1vKg8mcLku8wGriVT_GeCg_fy8u84o-"; 
 
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
         async function loadProfile() {
             const user = tg.initDataUnsafe?.user;
-            if (!user) return;
+            
+            if (!user) {
+                document.getElementById('status_badge').innerText = "Ошибка доступа";
+                return;
+            }
+
             document.getElementById('u_name').innerText = user.first_name;
 
+            // Загружаем данные из таблицы users по telegram_id
             const { data, error } = await supabaseClient
                 .from('users')
                 .select('*')
                 .eq('telegram_id', user.id)
                 .maybeSingle();
 
+            if (error) {
+                console.error("Ошибка Supabase:", error);
+                document.getElementById('status_badge').innerText = "Ошибка базы";
+                return;
+            }
+
             if (data) {
-                document.getElementById('b_date').innerText = data.birth_date || "--.--.----";
-                document.getElementById('b_time').innerText = data.birth_time || "12:00";
-                document.getElementById('b_city').innerText = data.birth_city || "Не указан";
-                document.getElementById('z_sign').innerText = data.zodiac_sign || "Рассчитано";
                 document.getElementById('status_badge').innerText = "Профиль активен";
+                document.getElementById('b_datetime').innerText = `${data.birth_date || '??'} ${data.birth_time || ''}`;
+                document.getElementById('b_city').innerText = data.birth_city || "Не указан";
+                
+                // Форматируем координаты до 2 знаков после запятой
+                if (data.lat && data.lon) {
+                    document.getElementById('coords').innerText = `${parseFloat(data.lat).toFixed(2)}, ${parseFloat(data.lon).toFixed(2)}`;
+                }
+                
+                document.getElementById('z_sign').innerText = data.zodiac_sign || "Не определен";
             } else {
                 document.getElementById('status_badge').innerText = "Данных нет";
+                document.getElementById('z_sign').innerText = "Напиши боту";
             }
         }
+
         loadProfile();
     </script>
 </body>
