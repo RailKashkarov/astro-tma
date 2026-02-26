@@ -6,9 +6,10 @@
     <title>Astro TMA</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root { --glass: rgba(255, 255, 255, 0.1); --accent: #8a2be2; }
-        body { margin: 0; background: #090a0f; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; min-height: 100vh; }
+        body { margin: 0; background: #090a0f; color: white; font-family: sans-serif; text-align: center; }
         
         #loader { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -18,16 +19,12 @@
         .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        #app-content { display: none; padding: 20px; opacity: 0; transition: 0.5s; }
-        .card { background: var(--glass); padding: 30px 20px; border-radius: 20px; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn { background: var(--glass); padding: 25px 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+        #app-content { display: none; padding: 20px; }
+        .card { background: var(--glass); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { background: var(--glass); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
         
-        /* Модалка для ИИ */
-        #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#090a0f; z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto; }
-        .close-btn { text-align:right; font-size:30px; margin-bottom:20px; color: var(--accent); }
-
-        #debug-log { font-size: 10px; color: #ff4444; margin-top: 20px; text-align: center; opacity: 0.5; }
+        #debug-log { font-size: 10px; color: #ff4444; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -35,33 +32,59 @@
     <div id="loader">
         <div class="spinner"></div>
         <p>Синхронизация...</p>
-    </div>
-
-    <div id="app-content">
-        <h1 style="letter-spacing: 3px; font-weight: 300;">ASTRO SYSTEM</h1>
-        <div class="card">
-            <h2 id="user-name" style="margin:0;">Странник</h2>
-            <p id="user-info" style="opacity:0.6; font-size:14px; margin-top:10px;">Загрузка данных...</p>
-        </div>
-        
-        <div class="grid">
-            <div class="btn" onclick="openModule('natal')">🪐 Натал</div>
-            <div class="btn" onclick="openModule('hd')">🧬 Дизайн</div>
-            <div class="btn" onclick="openModule('finance')">💎 Финансы</div>
-            <div class="btn" onclick="openModule('horo')">🔮 Прогноз</div>
-        </div>
-
         <div id="debug-log"></div>
     </div>
 
-    <div id="modal">
-        <div class="close-btn" onclick="closeModal()">&times;</div>
-        <h2 id="modal-title"></h2>
-        <div id="modal-body" style="text-align:left; line-height:1.6;">
-            <p id="ai-text">ИИ анализирует ваши данные... Пожалуйста, подождите.</p>
+    <div id="app-content">
+        <h1>ASTRO SYSTEM</h1>
+        <div class="card">
+            <h2 id="user-name">Загрузка...</h2>
+            <p id="user-info">...</p>
+        </div>
+        <div class="grid">
+            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Скоро!')">🪐 Натал</div>
+            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Скоро!')">🧬 Дизайн</div>
+            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Скоро!')">💎 Финансы</div>
+            <div class="btn" onclick="window.Telegram.WebApp.showAlert('Скоро!')">🔮 Прогноз</div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script>
+        // ВСЯ ЛОГИКА ТУТ, чтобы кеш не мешал
+        const URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
+        const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbW51cXp2ZGd4YWRpc2p0YXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTMyMjcsImV4cCI6MjA4NzU4OTIyN30.3iHv_nhBdPZB_sT4TSDSynsu9jEHVDjihV3bLvehcJQ";
+
+        const tg = window.Telegram.WebApp;
+
+        async function start() {
+            try {
+                tg.ready();
+                tg.expand();
+
+                const sb = supabase.createClient(URL, KEY);
+                const user = tg.initDataUnsafe?.user;
+
+                if (user) {
+                    const { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+                    if (data) {
+                        document.getElementById('user-name').innerText = data.name || user.first_name;
+                        document.getElementById('user-info').innerText = (data.birth_date || "") + " • " + (data.city || "");
+                    } else {
+                        document.getElementById('user-name').innerText = user.first_name;
+                        document.getElementById('user-info').innerText = "Профиль не найден";
+                    }
+                }
+            } catch (e) {
+                document.getElementById('debug-log').innerText = "Ошибка: " + e.message;
+            } finally {
+                // ПРИНУДИТЕЛЬНО СКРЫВАЕМ ЛОАДЕР
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+            }
+        }
+
+        // Запускаем через небольшую паузу
+        setTimeout(start, 500);
+    </script>
 </body>
 </html>
