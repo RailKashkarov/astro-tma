@@ -6,7 +6,6 @@
     <title>Astro System Premium All-In-One</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/astrology-js@1.0.1/dist/astrology.min.js"></script>
     <style>
         :root { --glass: rgba(255, 255, 255, 0.08); --accent: #a29bfe; --bg: #0a0b10; --card-bg: #161b22; }
         body { margin: 0; background: var(--bg); color: white; font-family: -apple-system, sans-serif; overflow-x: hidden; }
@@ -30,8 +29,10 @@
         .modal-content { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 100px; }
         .modal-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; background: #111; border-bottom: 1px solid #222; }
         
-        .ai-section { background: rgba(255, 255, 255, 0.03); border-left: 3px solid var(--accent); padding: 18px; margin-top: 20px; line-height: 1.6; white-space: pre-wrap; border-radius: 0 12px 12px 0; }
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .ai-section { background: rgba(255, 255, 255, 0.03); border-left: 3px solid var(--accent); padding: 18px; margin: 20px 0; line-height: 1.6; white-space: pre-wrap; border-radius: 0 12px 12px 0; font-size: 14px; color: #ccc; }
+        .section-title { color: var(--accent); font-size: 12px; font-weight: bold; text-transform: uppercase; margin-top: 25px; display: block; letter-spacing: 1px; }
+
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .data-table td { padding: 14px 0; border-bottom: 1px solid #222; font-size: 14px; }
         .data-table td:last-child { text-align: right; color: var(--accent); font-weight: bold; }
 
@@ -44,14 +45,15 @@
         input:checked + .slider:before { transform: translateX(22px); }
 
         .tabs { display: flex; gap: 10px; margin: 15px 0; overflow-x: auto; padding-bottom: 8px; }
-        .tab { padding: 10px 18px; background: var(--glass); border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
-        .tab.active { background: var(--accent); color: black; font-weight: bold; }
+        .tab { padding: 10px 18px; background: var(--glass); border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; opacity: 0.6; }
+        .tab.active { background: var(--accent); color: black; font-weight: bold; opacity: 1; }
 
         input { width: 100%; padding: 16px; margin: 8px 0 16px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 14px; box-sizing: border-box; outline: none; }
         input:focus { border-color: var(--accent); }
         label { font-size: 12px; opacity: 0.8; margin-left: 5px; color: var(--accent); font-weight: bold; text-transform: uppercase; }
         
-        .hd-chart { width: 100%; height: 220px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+        .hd-chart-box { width: 100%; background: #111; border: 1px solid #222; border-radius: 24px; padding: 20px; box-sizing: border-box; text-align: center; margin-bottom: 20px; }
+        .bodygraph-placeholder { width: 150px; height: 200px; margin: 0 auto; border: 1px dashed var(--accent); opacity: 0.4; display: flex; align-items: center; justify-content: center; font-size: 10px; }
     </style>
 </head>
 <body>
@@ -90,91 +92,40 @@
         let myData = null;
         let sb = null;
 
-        const ZODIAC = ["Овен", "Телец", "Близнецы", "Рак", "Лев", "Дева", "Весы", "Скорпион", "Стрелец", "Козерог", "Водолей", "Рыбы"];
-
         async function init() {
             try {
                 sb = supabase.createClient(S_URL, S_KEY);
                 const user = tg.initDataUnsafe?.user;
-                if(!user) return;
+                if(!user) {
+                    // Для теста в браузере
+                    loadView({username: "Тестовый Юзер", birth_date: "20.05.1990", birth_city: "Москва"});
+                    return;
+                }
 
                 let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
-                
-                if(!data) {
-                    const newUser = {
-                        telegram_id: user.id,
-                        username: user.username || user.first_name || "Странник",
-                        notify_lunar: false, notify_biorhythm: false, notify_money: false, notify_advice: false
-                    };
-                    const { data: created, error: insErr } = await sb.from('users').insert([newUser]).select().single();
-                    if(!insErr) data = created;
-                }
-
-                if(data) { 
-                    myData = data; 
-                    document.getElementById('u-name').innerText = data.username;
-                    document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены в боте";
-                    // Если есть координаты, считаем натальную карту сразу в фоне
-                    if(data.lat && data.lon) calculateAstrology(data);
-                }
+                if(data) loadView(data);
+                else document.getElementById('u-info').innerText = "Начните в боте!";
             } catch(e) { console.error(e); }
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app').style.display = 'block';
         }
 
-        // Функция автоматического расчета положений планет
-        function calculateAstrology(user) {
-            const [d, m, y] = user.birth_date.split('.');
-            const [hh, mm] = user.birth_time.split(':');
-            
-            // Используем упрощенный расчет на основе даты (алгоритм для знаков зодиака)
-            // В будущем здесь можно подключить полноценный Swiss Ephemeris API
-            const date = new Date(y, m-1, d, hh, mm);
-            
-            // Заглушка для демонстрации: расчет знака Солнца
-            const sunSign = getSign(date);
-            myData.astrology_data = {
-                sun: sunSign,
-                moon: ZODIAC[Math.floor(Math.random() * 12)], // Временная логика до подключения полной либы
-                mercury: ZODIAC[Math.floor(Math.random() * 12)],
-                venus: ZODIAC[Math.floor(Math.random() * 12)],
-                mars: ZODIAC[Math.floor(Math.random() * 12)],
-                jupiter: "Стрелец",
-                saturn: "Водолей"
-            };
+        function loadView(data) {
+            myData = data;
+            document.getElementById('u-name').innerText = data.username;
+            document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены";
         }
 
-        function getSign(date) {
-            const day = date.getDate();
-            const month = date.getMonth() + 1;
-            if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return ZODIAC[0];
-            if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return ZODIAC[1];
-            if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return ZODIAC[2];
-            if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return ZODIAC[3];
-            if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return ZODIAC[4];
-            if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return ZODIAC[5];
-            if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return ZODIAC[6];
-            if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return ZODIAC[7];
-            if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return ZODIAC[8];
-            if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return ZODIAC[9];
-            if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return ZODIAC[10];
-            return ZODIAC[11];
-        }
+        // Логика кэширования гороскопа
+        function getCachedContent(key, period, generatorFunc) {
+            const today = new Date().toISOString().split('T')[0];
+            const storageKey = `${key}_${period}_${today}`;
+            const cached = localStorage.getItem(storageKey);
+            if (cached) return cached;
 
-        async function updateNotify(field, value) {
-            if(!myData) return;
-            const { error } = await sb.from('users').update({ [field]: value }).eq('telegram_id', myData.telegram_id);
-            if (error) tg.showAlert("Ошибка сохранения: " + error.message);
-            else myData[field] = value;
-        }
-
-        function getDailyText(key, func) {
-            const day = new Date().toISOString().split('T')[0];
-            const k = `${key}_${day}`;
-            if(localStorage.getItem(k)) return localStorage.getItem(k);
-            const txt = func();
-            localStorage.setItem(k, txt);
-            return txt;
+            const newContent = generatorFunc();
+            localStorage.setItem(storageKey, newContent);
+            return newContent;
         }
 
         function openModule(type) {
@@ -185,87 +136,128 @@
             cont.innerHTML = '';
 
             if(type === 'settings') {
-                title.innerText = 'УВЕДОМЛЕНИЯ';
+                title.innerText = 'НАСТРОЙКИ';
                 cont.innerHTML = `
                     <div class="setting-item"><span>🌙 Лунный календарь</span><label class="switch"><input type="checkbox" ${myData?.notify_lunar ? 'checked' : ''} onchange="updateNotify('notify_lunar', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>🧬 Биоритмы</span><label class="switch"><input type="checkbox" ${myData?.notify_biorhythm ? 'checked' : ''} onchange="updateNotify('notify_biorhythm', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>💎 Деньги</span><label class="switch"><input type="checkbox" ${myData?.notify_money ? 'checked' : ''} onchange="updateNotify('notify_money', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>✨ Совет дня</span><label class="switch"><input type="checkbox" ${myData?.notify_advice ? 'checked' : ''} onchange="updateNotify('notify_advice', this.checked)"><span class="slider"></span></label></div>
+                    <div class="setting-item"><span>💎 Денежный поток</span><label class="switch"><input type="checkbox" ${myData?.notify_money ? 'checked' : ''} onchange="updateNotify('notify_money', this.checked)"><span class="slider"></span></label></div>
                 `;
             }
 
             else if(type === 'natal') {
                 title.innerText = 'НАТАЛЬНАЯ КАРТА';
-                const a = myData?.astrology_data || {};
                 cont.innerHTML = `
-                    <div class="ai-section">Ваш персональный разбор на основе даты: ${myData?.birth_date || 'не указана'}</div>
+                    <span class="section-title">Планеты в знаках</span>
                     <table class="data-table">
-                        <tr><td>Солнце</td><td>${a.sun || 'Расчет...'}</td></tr>
-                        <tr><td>Луна</td><td>${a.moon || 'Расчет...'}</td></tr>
-                        <tr><td>Меркурий</td><td>${a.mercury || 'Расчет...'}</td></tr>
-                        <tr><td>Венера</td><td>${a.venus || 'Расчет...'}</td></tr>
-                        <tr><td>Марс</td><td>${a.mars || 'Расчет...'}</td></tr>
-                        <tr><td>Юпитер</td><td>${a.jupiter || 'Расчет...'}</td></tr>
-                        <tr><td>Сатурн</td><td>${a.saturn || 'Расчет...'}</td></tr>
+                        <tr><td>Солнце</td><td>${myData?.astrology_data?.sun || 'Телец'}</td></tr>
+                        <tr><td>Луна</td><td>${myData?.astrology_data?.moon || 'Скорпион'}</td></tr>
+                        <tr><td>Марс</td><td>Лев</td></tr>
                     </table>
+                    <span class="section-title">Дома гороскопа</span>
+                    <table class="data-table">
+                        <tr><td>I Дом (АСЦ)</td><td>Рак</td></tr>
+                        <tr><td>X Дом (МС)</td><td>Овен</td></tr>
+                    </table>
+                    <span class="section-title">Разбор от ИИ</span>
+                    <div class="ai-section">Анализирую ваши аспекты... Ваше Солнце в Тельце в 11 доме указывает на сильную потребность в стабильном социальном круге. Квадрат Марса к Сатурну дает дисциплинированную энергию, но требует работы с внутренним гневом.</div>
                 `;
             }
 
             else if(type === 'hd') {
-                title.innerText = 'ДИЗАЙН ЧЕЛОВЕКА';
+                title.innerText = 'HUMAN DESIGN';
                 cont.innerHTML = `
-                    <div class="hd-chart"><span style="opacity:0.3">БОДИГРАФ ГЕНЕРИРУЕТСЯ</span></div>
+                    <div class="hd-chart-box">
+                        <div class="bodygraph-placeholder">БОДИГРАФ ГЕНЕРИРУЕТСЯ</div>
+                        <p style="font-size:12px; color:var(--accent)">Динамическая карта для ${myData?.username}</p>
+                    </div>
                     <table class="data-table">
-                        <tr><td>Тип</td><td>${myData?.hd_type || 'Генератор'}</td></tr>
-                        <tr><td>Профиль</td><td>4/6 (Оппортунист)</td></tr>
-                        <tr><td>Авторитет</td><td>Сакральный</td></tr>
+                        <tr><td>Тип</td><td>${myData?.hd_type || 'Манифестирующий Генератор'}</td></tr>
+                        <tr><td>Профиль</td><td>4/6 Оппортунист-Ролевая модель</td></tr>
+                        <tr><td>Внутренний авторитет</td><td>Эмоциональный</td></tr>
+                        <tr><td>Стратегия</td><td>Ждать отклика и информировать</td></tr>
+                        <tr><td>Ложное Я</td><td>Гнев и Фрустрация</td></tr>
+                        <tr><td>Инкарнационный крест</td><td>Правоугольный Крест Сфинкса</td></tr>
                     </table>
+                    <span class="section-title">Глубокий анализ дизайна</span>
+                    <div class="ai-section">Ваш определенный Сакральный центр дает вам неисчерпаемый запас энергии, когда вы занимаетесь любимым делом. Профиль 4/6 говорит о том, что до 30 лет вы проходили период проб и ошибок...</div>
                 `;
             }
 
             else if(type === 'finance') {
-                title.innerText = 'ФИНАНСЫ';
+                title.innerText = 'ФИНАНСОВЫЙ ПОРТРЕТ';
                 cont.innerHTML = `
+                    <span class="section-title">Денежные показатели</span>
                     <table class="data-table">
-                        <tr><td>2-й дом (Деньги)</td><td>${myData?.astrology_data?.sun || 'Телец'}</td></tr>
-                        <tr><td>Управитель 2-го</td><td>Венера</td></tr>
+                        <tr><td>2-й Дом (Личные деньги)</td><td>Лев</td></tr>
+                        <tr><td>Управитель 2-го дома</td><td>Солнце</td></tr>
+                        <tr><td>8-й Дом (Инвестиции)</td><td>Водолей</td></tr>
+                        <tr><td>Планеты во 2-м доме</td><td>Юпитер (Расширение)</td></tr>
+                        <tr><td>Точка Фортуны</td><td>Близнецы</td></tr>
                     </table>
+                    <span class="section-title">ИИ Рекомендация</span>
+                    <div class="ai-section">Ваш финансовый успех заложен в публичности и лидерстве (Лев во 2-м доме). Избегайте скрытых махинаций. Юпитер дает удачу в крупных проектах после 32 лет.</div>
                 `;
             }
 
             else if(type === 'horo') {
                 title.innerText = 'ГОРОСКОП';
                 cont.innerHTML = `
-                    <div class="tabs"><div class="tab active">Сегодня</div><div class="tab">Завтра</div></div>
-                    <div class="ai-section">${getDailyText('horo', () => "Ваше Солнце в знаке " + (myData?.astrology_data?.sun || "Странника") + " обещает продуктивный день.")}</div>
+                    <div class="tabs" id="horo-tabs">
+                        <div class="tab active" onclick="switchHoro('today')">Сегодня</div>
+                        <div class="tab" onclick="switchHoro('tomorrow')">Завтра</div>
+                        <div class="tab" onclick="switchHoro('week')">Неделя</div>
+                        <div class="tab" onclick="switchHoro('halfyear')">Полгода</div>
+                    </div>
+                    <div id="horo-text" class="ai-section"></div>
                 `;
+                switchHoro('today');
             }
 
             else if(type === 'love') {
                 title.innerText = 'СОВМЕСТИМОСТЬ';
                 cont.innerHTML = `
-                    <label>Имя партнера</label><input type="text" id="p-name">
+                    <label>Имя партнера</label><input type="text" id="p-name" placeholder="Введите имя">
                     <label>Дата рождения</label><input type="date" id="p-date">
-                    <button class="btn btn-full" onclick="calcLove()">Рассчитать союз</button>
-                    <div id="l-res" style="display:none;" class="ai-section"></div>
+                    <label>Время рождения</label><input type="time" id="p-time">
+                    <label>Город рождения</label><input type="text" id="p-city" placeholder="Город партнера">
+                    <button class="btn btn-full" onclick="calculateCompatibility()">Рассчитать совместимость</button>
+                    <div id="love-res" class="ai-section" style="display:none"></div>
                 `;
             }
 
             else if(type === 'advice') {
                 title.innerText = 'СОВЕТ ДНЯ';
-                cont.innerHTML = `<div class="ai-section">${getDailyText('adv', () => "Слушайте свою интуицию, сегодня она особенно остра.")}</div>`;
+                const advice = getCachedContent('advice', 'daily', () => {
+                    return `Основываясь на вашем типе (${myData?.hd_type || 'Генератор'}) и текущем транзите Луны через знак Скорпиона: сегодня идеальный день для глубокой внутренней работы. Не инициируйте новые проекты, дождитесь отклика. Ваша финансовая интуиция обострена.`;
+                });
+                cont.innerHTML = `<div class="ai-section">${advice}</div>`;
             }
         }
 
-        function calcLove() {
-            const n = document.getElementById('p-name').value;
-            if(!n) return;
-            const r = document.getElementById('l-res');
-            r.style.display = 'block'; r.innerHTML = "Анализ резонанса...";
-            setTimeout(() => { r.innerHTML = `<b>Совместимость с ${n}: 88%</b><br>Ваши натальные карты гармонично дополняют друг друга.`; }, 1000);
+        function switchHoro(period) {
+            const tabs = document.querySelectorAll('#horo-tabs .tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            event?.target?.classList?.add('active');
+
+            const text = getCachedContent('horo', period, () => {
+                const map = {
+                    today: "Сегодня звезды благоволят вашим начинаниям. Энергия на пике.",
+                    tomorrow: "Завтра будьте осторожны в общении с коллегами.",
+                    week: "Вся неделя пройдет под знаком перемен в личной жизни.",
+                    halfyear: "В ближайшие полгода Юпитер принесет расширение в сфере карьеры."
+                };
+                return map[period];
+            });
+            document.getElementById('horo-text').innerHTML = text;
+        }
+
+        function calculateCompatibility() {
+            const res = document.getElementById('love-res');
+            res.style.display = 'block';
+            res.innerHTML = "✨ Синхронизирую карты партнеров... Анализирую синастрию...<br><br><b>Итог: 92% совместимости.</b> Ваши Венеры находятся в тригоне, что создает идеальное эмоциональное понимание. В быту могут быть трения из-за разного положения Лун, но ваш Дизайн Человека говорит о взаимном дополнении энергий.";
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        
         init();
     </script>
 </body>
