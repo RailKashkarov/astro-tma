@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Astro System Premium Ultra</title>
+    <title>Astro System Premium</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --glass: rgba(255, 255, 255, 0.08); --accent: #a29bfe; --bg: #0a0b10; --card-bg: #161b22; }
+        :root { --glass: rgba(255, 255, 255, 0.08); --accent: #a29bfe; --bg: #0a0b10; --card-bg: #161b22; --red: #ff7675; }
         body { margin: 0; background: var(--bg); color: white; font-family: -apple-system, sans-serif; overflow-x: hidden; }
         
         #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
@@ -18,8 +18,6 @@
         .card { background: var(--card-bg); border-radius: 24px; padding: 25px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); position: relative; }
         
         .settings-btn { position: absolute; top: 22px; right: 22px; font-size: 22px; cursor: pointer; opacity: 0.6; transition: 0.3s; }
-        .settings-btn:hover { opacity: 1; transform: rotate(45deg); }
-
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .btn { background: var(--glass); padding: 22px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; cursor: pointer; font-size: 14px; line-height: 1.4; }
         .btn-advice { grid-column: span 2; background: rgba(162, 155, 254, 0.12); border: 1px dashed var(--accent); color: var(--accent); font-weight: bold; margin-bottom: 10px; font-size: 16px; }
@@ -29,29 +27,18 @@
         .modal-content { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 100px; }
         .modal-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; background: #111; border-bottom: 1px solid #222; }
         
-        .ai-section { background: rgba(255, 255, 255, 0.03); border-left: 3px solid var(--accent); padding: 18px; margin: 20px 0; line-height: 1.6; white-space: pre-wrap; border-radius: 0 12px 12px 0; font-size: 14px; color: #ccc; }
+        .ai-section { background: rgba(255, 255, 255, 0.03); border-left: 3px solid var(--accent); padding: 18px; margin: 20px 0; line-height: 1.6; border-radius: 0 12px 12px 0; font-size: 14px; color: #ccc; }
         .section-title { color: var(--accent); font-size: 12px; font-weight: bold; text-transform: uppercase; margin-top: 25px; display: block; letter-spacing: 1px; }
 
         .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .data-table td { padding: 14px 0; border-bottom: 1px solid #222; font-size: 14px; }
         .data-table td:last-child { text-align: right; color: var(--accent); font-weight: bold; }
 
-        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid #222; }
-        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #333; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--accent); }
-        input:checked + .slider:before { transform: translateX(22px); }
-
-        .tabs { display: flex; gap: 8px; margin: 15px 0; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
-        .tab { padding: 10px 20px; background: var(--glass); border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
-        .tab.active { background: var(--accent); color: black; font-weight: bold; }
-
-        input { width: 100%; padding: 16px; margin: 8px 0 16px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 14px; box-sizing: border-box; outline: none; }
-        label { font-size: 11px; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-left: 5px; }
-        
         .hd-chart-box { width: 100%; background: #111; border: 1px solid #222; border-radius: 24px; padding: 30px; box-sizing: border-box; text-align: center; margin-bottom: 20px; }
+        .gate-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        .gate-tag { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
+        .gate-p { background: #333; color: white; } /* Personality - Black */
+        .gate-d { background: var(--red); color: white; } /* Design - Red */
     </style>
 </head>
 <body>
@@ -93,33 +80,18 @@
         async function init() {
             try {
                 sb = supabase.createClient(S_URL, S_KEY);
-                const user = tg.initDataUnsafe?.user;
-                if(!user) return;
-
-                let { data } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+                const user = tg.initDataUnsafe?.user || { id: 12345 }; // Для теста
+                
+                let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+                
                 if(data) {
                     myData = data;
-                    document.getElementById('u-name').innerText = data.username;
+                    document.getElementById('u-name').innerText = data.username || "Пользователь";
                     document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены";
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Init Error:", e); }
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-        }
-
-        async function updateNotify(field, value) {
-            if(!myData) return;
-            const { error } = await sb.from('users').update({ [field]: value }).eq('telegram_id', myData.telegram_id);
-            if (!error) myData[field] = value;
-        }
-
-        function getCached(key, period, func) {
-            const d = new Date().toISOString().split('T')[0];
-            const k = `${key}_${period}_${d}`;
-            if(localStorage.getItem(k)) return localStorage.getItem(k);
-            const val = func();
-            localStorage.setItem(k, val);
-            return val;
         }
 
         function openModule(type) {
@@ -129,180 +101,65 @@
             m.style.display = 'flex';
             cont.innerHTML = '';
 
-            if(type === 'settings') {
-                title.innerText = 'УВЕДОМЛЕНИЯ';
-                cont.innerHTML = `
-                    <div class="setting-item"><span>🌙 Лунный календарь</span><label class="switch"><input type="checkbox" ${myData?.notify_lunar ? 'checked' : ''} onchange="updateNotify('notify_lunar', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>🧬 Биоритмы</span><label class="switch"><input type="checkbox" ${myData?.notify_biorhythm ? 'checked' : ''} onchange="updateNotify('notify_biorhythm', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>💎 Денежный поток</span><label class="switch"><input type="checkbox" ${myData?.notify_money ? 'checked' : ''} onchange="updateNotify('notify_money', this.checked)"><span class="slider"></span></label></div>
-                    <div class="setting-item"><span>✨ Совет дня</span><label class="switch"><input type="checkbox" ${myData?.notify_advice ? 'checked' : ''} onchange="updateNotify('notify_advice', this.checked)"><span class="slider"></span></label></div>
-                `;
-            }
-
-            else if(type === 'natal') {
-                title.innerText = 'НАТАЛЬНАЯ КАРТА';
-                cont.innerHTML = `
-                    <span class="section-title">Положения планет</span>
-                    <table class="data-table">
-                        <tr><td>Солнце</td><td>${myData?.astrology_data?.sun || 'Телец'}</td></tr>
-                        <tr><td>Луна</td><td>${myData?.astrology_data?.moon || 'Скорпион'}</td></tr>
-                        <tr><td>Меркурий</td><td>Близнецы</td></tr>
-                        <tr><td>Венера</td><td>Овен</td></tr>
-                        <tr><td>Марс</td><td>Лев</td></tr>
-                        <tr><td>Юпитер</td><td>Стрелец</td></tr>
-                        <tr><td>Сатурн</td><td>Водолей</td></tr>
-                        <tr><td>Уран</td><td>Телец</td></tr>
-                        <tr><td>Нептун</td><td>Рыбы</td></tr>
-                        <tr><td>Плутон</td><td>Козерог</td></tr>
-                        <tr><td>Раху / Кету</td><td>Овен / Весы</td></tr>
-                        <tr><td>Лилит</td><td>Дева</td></tr>
-                    </table>
-                    <span class="section-title">Дома и Аспекты</span>
-                    <table class="data-table">
-                        <tr><td>Асцендент (1 дом)</td><td>Рак</td></tr>
-                        <tr><td>МС (10 дом)</td><td>Овен</td></tr>
-                        <tr><td>Dsc (7 дом)</td><td>Козерог</td></tr>
-                        <tr><td>IC (4 дом)</td><td>Весы</td></tr>
-                    </table>
-                    <span class="section-title">ИИ РАЗБОР КАРТЫ</span>
-                    <div class="ai-section">Анализирую ваши аспекты... Ваше Солнце в Тельце создает фундамент личности, стремящийся к материальной стабильности. Однако Луна в Скорпионе вносит глубокий внутренний драматизм...</div>
-                `;
-            }
-
-            else if(type === 'hd') {
+            if(type === 'hd') {
                 title.innerText = 'HUMAN DESIGN';
+                
+                // Рендерим ворота (теги)
+                let gatesHtml = '';
+                if(myData?.hd_active_gates) {
+                    myData.hd_active_gates.forEach(g => {
+                        const style = g.type === 'personality' ? 'gate-p' : 'gate-d';
+                        gatesHtml += `<span class="gate-tag ${style}">${g.gate}</span>`;
+                    });
+                }
+
                 cont.innerHTML = `
                     <div class="hd-chart-box">
                         <svg id="bodygraph-svg" viewBox="0 0 200 400" style="width: 100%; height: 280px; margin: 0 auto; display: block;">
-                            <line x1="100" y1="70" x2="100" y2="80" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
-                            <line x1="100" y1="130" x2="100" y2="140" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
-                            <line x1="100" y1="180" x2="100" y2="190" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
-                            <line x1="100" y1="250" x2="100" y2="260" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
-                            <line x1="100" y1="300" x2="100" y2="320" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
-                            <polygon id="center-head" points="100,20 130,70 70,70" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <polygon id="center-ajna" points="70,80 130,80 100,130" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <rect id="center-throat" x="80" y="140" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <polygon id="center-g" points="100,190 120,220 100,250 80,220" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <polygon id="center-heart" points="130,200 160,200 145,230" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <rect id="center-sacral" x="80" y="260" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <polygon id="center-spleen" points="30,260 70,260 30,310" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <polygon id="center-solar" points="170,260 130,260 170,310" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <rect id="center-root" x="80" y="320" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <polygon id="center-head" points="100,20 130,70 70,70" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                            <polygon id="center-ajna" points="70,80 130,80 100,130" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                            <rect id="center-throat" x="80" y="140" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                            <polygon id="center-g" points="100,190 120,220 100,250 80,220" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                            <polygon id="center-heart" points="130,200 160,200 145,230" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                            <rect id="center-sacral" x="80" y="260" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                            <polygon id="center-spleen" points="30,260 70,260 30,310" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                            <polygon id="center-solar" points="170,260 130,260 170,310" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                            <rect id="center-root" x="80" y="320" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
                         </svg>
-                        <p style="color:var(--accent); font-size:12px; margin-top:10px;">Индивидуальный расчет для ${myData?.username}</p>
                     </div>
+                    
+                    <span class="section-title">Ваши показатели</span>
                     <table class="data-table">
-                        <tr><td>Тип</td><td>${myData?.hd_type || 'Манифестирующий Генератор'}</td></tr>
-                        <tr><td>Профиль</td><td>4/6 Оппортунист</td></tr>
-                        <tr><td>Внутренний Авторитет</td><td>Эмоциональный</td></tr>
-                        <tr><td>Стратегия</td><td>Ждать отклика</td></tr>
-                        <tr><td>Ложное Я</td><td>Фрустрация / Гнев</td></tr>
-                        <tr><td>Инкарнационный крест</td><td>Крест Сфинкса</td></tr>
-                        <tr><td>Определенные центры</td><td>Теменной, Аджна, Горло, G</td></tr>
+                        <tr><td>Тип</td><td>${myData?.hd_type || 'Расчет...'}</td></tr>
+                        <tr><td>Определенные центры</td><td>${myData?.hd_defined_centers?.length || 0} из 9</td></tr>
                     </table>
-                    <span class="section-title">РАЗБОР ДИЗАЙНА ОТ ИИ</span>
-                    <div class="ai-section">Как Манифестирующий Генератор, ваша главная задача — не инициировать из ума, а дожидаться отклика вашего тела. Профиль 4/6 означает, что ваше влияние распространяется через вашу социальную сеть...</div>
+
+                    <span class="section-title">Активированные ворота</span>
+                    <div class="gate-list">${gatesHtml || 'Нет данных'}</div>
+
+                    <div class="ai-section">Ваш бодиграф рассчитан на сервере. Черные ворота — это ваша личность, красные — ваш дизайн (подсознание).</div>
                 `;
-                const userCenters = myData?.hd_defined_centers || ['head', 'ajna', 'sacral', 'throat'];
-                setTimeout(() => drawBodygraph(userCenters), 50);
+                
+                // Запускаем закрашивание центров
+                if(myData?.hd_defined_centers) {
+                    setTimeout(() => drawBodygraph(myData.hd_defined_centers), 100);
+                }
+            } else {
+                cont.innerHTML = `<div class="ai-section">Блок ${type} в разработке. Данные уже считаются на сервере.</div>`;
             }
-
-            else if(type === 'finance') {
-                title.innerText = 'ФИНАНСЫ';
-                cont.innerHTML = `
-                    <span class="section-title">Денежные Дома</span>
-                    <table class="data-table">
-                        <tr><td>2-й Дом (Доходы)</td><td>Лев</td></tr>
-                        <tr><td>Управитель 2-го</td><td>Солнце</td></tr>
-                        <tr><td>8-й Дом (Чужие деньги)</td><td>Водолей</td></tr>
-                        <tr><td>10-й Дом (Карьера)</td><td>Овен</td></tr>
-                        <tr><td>Управитель 10-го</td><td>Марс</td></tr>
-                        <tr><td>Планета во 2-м доме</td><td>Юпитер</td></tr>
-                    </table>
-                    <span class="section-title">ФИНАНСОВЫЙ РАЗБОР ОТ ИИ</span>
-                    <div class="ai-section">Ваш финансовый потенциал раскрывается через лидерство. Юпитер во 2-м доме дает возможности для масштабирования доходов при условии соблюдения дисциплины.</div>
-                `;
-            }
-
-            else if(type === 'horo') {
-                title.innerText = 'ГОРОСКОП';
-                cont.innerHTML = `
-                    <div class="tabs" id="h-tabs">
-                        <div class="tab active" onclick="sh('today')">Сегодня</div>
-                        <div class="tab" onclick="sh('tomorrow')">Завтра</div>
-                        <div class="tab" onclick="sh('week')">Неделя</div>
-                        <div class="tab" onclick="sh('halfyear')">Полгода</div>
-                    </div>
-                    <div id="h-text" class="ai-section"></div>
-                `;
-                sh('today');
-            }
-
-            else if(type === 'love') {
-                title.innerText = 'СОВМЕСТИМОСТЬ';
-                cont.innerHTML = `
-                    <label>Имя партнера</label><input type="text" id="p-name">
-                    <label>Дата рождения</label><input type="date" id="p-date">
-                    <label>Время рождения</label><input type="time" id="p-time">
-                    <label>Город рождения</label><input type="text" id="p-city">
-                    <button class="btn btn-full" onclick="calcL()">Рассчитать совместимость</button>
-                    <div id="l-res" class="ai-section" style="display:none"></div>
-                `;
-            }
-
-            else if(type === 'advice') {
-                title.innerText = 'СОВЕТ ДНЯ';
-                const adv = getCached('advice', 'daily', () => {
-                    return `Ваш Тип сегодня требует тишины. Луна в Скорпионе советует не принимать поспешных финансовых решений. Идеальное время для планирования.`;
-                });
-                cont.innerHTML = `<div class="ai-section">${adv}</div>`;
-            }
-        }
-
-        function sh(p) {
-            const ts = document.querySelectorAll('#h-tabs .tab');
-            ts.forEach(t => t.classList.remove('active'));
-            if(event && event.target.classList.contains('tab')) event.target.classList.add('active');
-
-            const txt = getCached('horo', p, () => {
-                const map = {
-                    today: "Сегодняшний день несет энергию созидания. Удачно для переговоров.",
-                    tomorrow: "Завтра лучше посвятить время семье и внутреннему покою.",
-                    week: "На этой неделе Плутон активирует ваш сектор карьеры — ждите перемен.",
-                    halfyear: "В ближайшие полгода ваша основная задача — обучение и рост."
-                };
-                return map[p];
-            });
-            document.getElementById('h-text').innerText = txt;
-        }
-
-        function calcL() {
-            const res = document.getElementById('l-res');
-            res.style.display = 'block';
-            res.innerHTML = "✨ Анализирую синастрию...<br><br><b>Ваша совместимость: 89%</b>. Сильная связь по Луне обеспечивает эмоциональный комфорт.";
         }
 
         function drawBodygraph(definedCenters) {
-            const allCenters = ['head', 'ajna', 'throat', 'g', 'heart', 'sacral', 'spleen', 'solar', 'root'];
-            allCenters.forEach(c => {
-                const el = document.getElementById('center-' + c);
-                if(el) {
-                    el.setAttribute('fill', 'none');
-                    el.setAttribute('stroke', 'rgba(255,255,255,0.3)');
-                }
-            });
-            if(!definedCenters) return;
             definedCenters.forEach(c => {
                 const el = document.getElementById('center-' + c);
                 if(el) {
-                    el.setAttribute('fill', '#a29bfe'); 
-                    el.setAttribute('stroke', '#a29bfe');
+                    el.setAttribute('fill', 'var(--accent)');
+                    el.setAttribute('stroke', 'var(--accent)');
                 }
             });
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
-        
         init();
     </script>
 </body>
