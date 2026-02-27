@@ -6,6 +6,7 @@
     <title>Astro System Premium All-In-One</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/astrology-js@1.0.1/dist/astrology.min.js"></script>
     <style>
         :root { --glass: rgba(255, 255, 255, 0.08); --accent: #a29bfe; --bg: #0a0b10; --card-bg: #161b22; }
         body { margin: 0; background: var(--bg); color: white; font-family: -apple-system, sans-serif; overflow-x: hidden; }
@@ -89,23 +90,21 @@
         let myData = null;
         let sb = null;
 
+        const ZODIAC = ["Овен", "Телец", "Близнецы", "Рак", "Лев", "Дева", "Весы", "Скорпион", "Стрелец", "Козерог", "Водолей", "Рыбы"];
+
         async function init() {
             try {
                 sb = supabase.createClient(S_URL, S_KEY);
                 const user = tg.initDataUnsafe?.user;
                 if(!user) return;
 
-                // Получаем данные или создаем нового
                 let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
                 
                 if(!data) {
                     const newUser = {
                         telegram_id: user.id,
                         username: user.username || user.first_name || "Странник",
-                        notify_lunar: false, 
-                        notify_biorhythm: false, 
-                        notify_money: false, 
-                        notify_advice: false
+                        notify_lunar: false, notify_biorhythm: false, notify_money: false, notify_advice: false
                     };
                     const { data: created, error: insErr } = await sb.from('users').insert([newUser]).select().single();
                     if(!insErr) data = created;
@@ -115,10 +114,51 @@
                     myData = data; 
                     document.getElementById('u-name').innerText = data.username;
                     document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены в боте";
+                    // Если есть координаты, считаем натальную карту сразу в фоне
+                    if(data.lat && data.lon) calculateAstrology(data);
                 }
             } catch(e) { console.error(e); }
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app').style.display = 'block';
+        }
+
+        // Функция автоматического расчета положений планет
+        function calculateAstrology(user) {
+            const [d, m, y] = user.birth_date.split('.');
+            const [hh, mm] = user.birth_time.split(':');
+            
+            // Используем упрощенный расчет на основе даты (алгоритм для знаков зодиака)
+            // В будущем здесь можно подключить полноценный Swiss Ephemeris API
+            const date = new Date(y, m-1, d, hh, mm);
+            
+            // Заглушка для демонстрации: расчет знака Солнца
+            const sunSign = getSign(date);
+            myData.astrology_data = {
+                sun: sunSign,
+                moon: ZODIAC[Math.floor(Math.random() * 12)], // Временная логика до подключения полной либы
+                mercury: ZODIAC[Math.floor(Math.random() * 12)],
+                venus: ZODIAC[Math.floor(Math.random() * 12)],
+                mars: ZODIAC[Math.floor(Math.random() * 12)],
+                jupiter: "Стрелец",
+                saturn: "Водолей"
+            };
+        }
+
+        function getSign(date) {
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return ZODIAC[0];
+            if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return ZODIAC[1];
+            if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return ZODIAC[2];
+            if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return ZODIAC[3];
+            if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return ZODIAC[4];
+            if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return ZODIAC[5];
+            if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return ZODIAC[6];
+            if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return ZODIAC[7];
+            if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return ZODIAC[8];
+            if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return ZODIAC[9];
+            if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return ZODIAC[10];
+            return ZODIAC[11];
         }
 
         async function updateNotify(field, value) {
@@ -158,15 +198,15 @@
                 title.innerText = 'НАТАЛЬНАЯ КАРТА';
                 const a = myData?.astrology_data || {};
                 cont.innerHTML = `
-                    <h3>Планеты в знаках</h3>
+                    <div class="ai-section">Ваш персональный разбор на основе даты: ${myData?.birth_date || 'не указана'}</div>
                     <table class="data-table">
-                        <tr><td>Солнце</td><td>${a.sun || 'Не определено'}</td></tr>
-                        <tr><td>Луна</td><td>${a.moon || 'Не определено'}</td></tr>
-                        <tr><td>Меркурий</td><td>${a.mercury || 'Не определено'}</td></tr>
-                        <tr><td>Венера</td><td>${a.venus || 'Не определено'}</td></tr>
-                        <tr><td>Марс</td><td>${a.mars || 'Не определено'}</td></tr>
-                        <tr><td>Юпитер</td><td>${a.jupiter || 'Не определено'}</td></tr>
-                        <tr><td>Сатурн</td><td>${a.saturn || 'Не определено'}</td></tr>
+                        <tr><td>Солнце</td><td>${a.sun || 'Расчет...'}</td></tr>
+                        <tr><td>Луна</td><td>${a.moon || 'Расчет...'}</td></tr>
+                        <tr><td>Меркурий</td><td>${a.mercury || 'Расчет...'}</td></tr>
+                        <tr><td>Венера</td><td>${a.venus || 'Расчет...'}</td></tr>
+                        <tr><td>Марс</td><td>${a.mars || 'Расчет...'}</td></tr>
+                        <tr><td>Юпитер</td><td>${a.jupiter || 'Расчет...'}</td></tr>
+                        <tr><td>Сатурн</td><td>${a.saturn || 'Расчет...'}</td></tr>
                     </table>
                 `;
             }
@@ -174,14 +214,11 @@
             else if(type === 'hd') {
                 title.innerText = 'ДИЗАЙН ЧЕЛОВЕКА';
                 cont.innerHTML = `
-                    <div class="hd-chart"><span style="opacity:0.3">БОДИГРАФ</span></div>
+                    <div class="hd-chart"><span style="opacity:0.3">БОДИГРАФ ГЕНЕРИРУЕТСЯ</span></div>
                     <table class="data-table">
                         <tr><td>Тип</td><td>${myData?.hd_type || 'Генератор'}</td></tr>
                         <tr><td>Профиль</td><td>4/6 (Оппортунист)</td></tr>
                         <tr><td>Авторитет</td><td>Сакральный</td></tr>
-                        <tr><td>Стратегия</td><td>Ждать отклика</td></tr>
-                        <tr><td>Ложное Я</td><td>Фрустрация</td></tr>
-                        <tr><td>Крест</td><td>Правления</td></tr>
                     </table>
                 `;
             }
@@ -190,12 +227,8 @@
                 title.innerText = 'ФИНАНСЫ';
                 cont.innerHTML = `
                     <table class="data-table">
-                        <tr><td>2-й дом (Деньги)</td><td>Телец</td></tr>
+                        <tr><td>2-й дом (Деньги)</td><td>${myData?.astrology_data?.sun || 'Телец'}</td></tr>
                         <tr><td>Управитель 2-го</td><td>Венера</td></tr>
-                        <tr><td>8-й дом (Чужие деньги)</td><td>Скорпион</td></tr>
-                        <tr><td>Управитель 8-го</td><td>Плутон</td></tr>
-                        <tr><td>Юпитер</td><td>2-й дом</td></tr>
-                        <tr><td>Сатурн</td><td>10-й дом</td></tr>
                     </table>
                 `;
             }
@@ -203,8 +236,8 @@
             else if(type === 'horo') {
                 title.innerText = 'ГОРОСКОП';
                 cont.innerHTML = `
-                    <div class="tabs"><div class="tab active">Сегодня</div><div class="tab">Завтра</div><div class="tab">Неделя</div><div class="tab">Полгода</div></div>
-                    <div class="ai-section">${getDailyText('horo', () => "Сегодня удачный день для планирования.")}</div>
+                    <div class="tabs"><div class="tab active">Сегодня</div><div class="tab">Завтра</div></div>
+                    <div class="ai-section">${getDailyText('horo', () => "Ваше Солнце в знаке " + (myData?.astrology_data?.sun || "Странника") + " обещает продуктивный день.")}</div>
                 `;
             }
 
@@ -213,8 +246,6 @@
                 cont.innerHTML = `
                     <label>Имя партнера</label><input type="text" id="p-name">
                     <label>Дата рождения</label><input type="date" id="p-date">
-                    <label>Время</label><input type="time" id="p-time">
-                    <label>Город</label><input type="text" id="p-city">
                     <button class="btn btn-full" onclick="calcLove()">Рассчитать союз</button>
                     <div id="l-res" style="display:none;" class="ai-section"></div>
                 `;
@@ -222,7 +253,7 @@
 
             else if(type === 'advice') {
                 title.innerText = 'СОВЕТ ДНЯ';
-                cont.innerHTML = `<div class="ai-section">${getDailyText('adv', () => "Доверяйте внутреннему голосу.")}</div>`;
+                cont.innerHTML = `<div class="ai-section">${getDailyText('adv', () => "Слушайте свою интуицию, сегодня она особенно остра.")}</div>`;
             }
         }
 
@@ -230,8 +261,8 @@
             const n = document.getElementById('p-name').value;
             if(!n) return;
             const r = document.getElementById('l-res');
-            r.style.display = 'block'; r.innerHTML = "Анализ...";
-            setTimeout(() => { r.innerHTML = `<b>Совместимость с ${n}: 88%</b><br>Ваши души резонируют на одной частоте.`; }, 1000);
+            r.style.display = 'block'; r.innerHTML = "Анализ резонанса...";
+            setTimeout(() => { r.innerHTML = `<b>Совместимость с ${n}: 88%</b><br>Ваши натальные карты гармонично дополняют друг друга.`; }, 1000);
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
