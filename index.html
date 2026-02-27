@@ -93,15 +93,11 @@
             try {
                 sb = supabase.createClient(S_URL, S_KEY);
                 const user = tg.initDataUnsafe?.user;
-                if(!user) {
-                    document.getElementById('u-info').innerText = "Откройте в Telegram";
-                    return;
-                }
+                if(!user) return;
 
-                // Пытаемся получить данные
+                // Получаем данные или создаем нового
                 let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
                 
-                // РЕГИСТРАЦИЯ НОВОГО ПОЛЬЗОВАТЕЛЯ
                 if(!data) {
                     const newUser = {
                         telegram_id: user.id,
@@ -111,24 +107,16 @@
                         notify_money: false, 
                         notify_advice: false
                     };
-                    const { data: created, error: insertError } = await sb.from('users').insert([newUser]).select().single();
-                    if (insertError) {
-                        console.error("Insert error:", insertError);
-                        tg.showAlert("Ошибка регистрации: " + insertError.message);
-                    } else {
-                        data = created;
-                    }
+                    const { data: created, error: insErr } = await sb.from('users').insert([newUser]).select().single();
+                    if(!insErr) data = created;
                 }
 
                 if(data) { 
                     myData = data; 
-                    document.getElementById('u-name').innerText = myData.username;
-                    document.getElementById('u-info').innerText = myData.birth_date ? `${myData.birth_date} • ${myData.birth_city}` : "Данные не заполнены в боте";
+                    document.getElementById('u-name').innerText = data.username;
+                    document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены в боте";
                 }
-            } catch(e) { 
-                console.error("General init error:", e); 
-                tg.showAlert("Ошибка приложения: " + e.message);
-            }
+            } catch(e) { console.error(e); }
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app').style.display = 'block';
         }
@@ -136,14 +124,8 @@
         async function updateNotify(field, value) {
             if(!myData) return;
             const { error } = await sb.from('users').update({ [field]: value }).eq('telegram_id', myData.telegram_id);
-            if (error) {
-                console.error("Update error:", error);
-                tg.showAlert("Ошибка сохранения: " + error.message);
-                // Откатываем визуально чекбокс, если ошибка
-                setTimeout(() => { openModule('settings'); }, 500);
-            } else {
-                myData[field] = value;
-            }
+            if (error) tg.showAlert("Ошибка сохранения: " + error.message);
+            else myData[field] = value;
         }
 
         function getDailyText(key, func) {
