@@ -165,7 +165,7 @@
                         <tr><td>IC (4 дом)</td><td>Весы</td></tr>
                     </table>
                     <span class="section-title">ИИ РАЗБОР КАРТЫ</span>
-                    <div class="ai-section">Ваше Солнце в Тельце создает фундамент личности, стремящийся к материальной и эмоциональной стабильности. Однако Луна в Скорпионе вносит глубокий внутренний драматизм... (Полный текст генерируется ИИ)</div>
+                    <div class="ai-section">Анализирую ваши аспекты... Ваше Солнце в Тельце создает фундамент личности, стремящийся к материальной стабильности. Однако Луна в Скорпионе вносит глубокий внутренний драматизм...</div>
                 `;
             }
 
@@ -173,7 +173,22 @@
                 title.innerText = 'HUMAN DESIGN';
                 cont.innerHTML = `
                     <div class="hd-chart-box">
-                        <div style="width:100px; height:140px; border:1px dashed var(--accent); margin: 0 auto; opacity:0.3; display:flex; align-items:center; justify-content:center; font-size:10px;">БОДИГРАФ</div>
+                        <svg id="bodygraph-svg" viewBox="0 0 200 400" style="width: 100%; height: 280px; margin: 0 auto; display: block;">
+                            <line x1="100" y1="70" x2="100" y2="80" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+                            <line x1="100" y1="130" x2="100" y2="140" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+                            <line x1="100" y1="180" x2="100" y2="190" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+                            <line x1="100" y1="250" x2="100" y2="260" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+                            <line x1="100" y1="300" x2="100" y2="320" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+                            <polygon id="center-head" points="100,20 130,70 70,70" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <polygon id="center-ajna" points="70,80 130,80 100,130" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <rect id="center-throat" x="80" y="140" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <polygon id="center-g" points="100,190 120,220 100,250 80,220" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <polygon id="center-heart" points="130,200 160,200 145,230" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <rect id="center-sacral" x="80" y="260" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <polygon id="center-spleen" points="30,260 70,260 30,310" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <polygon id="center-solar" points="170,260 130,260 170,310" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                            <rect id="center-root" x="80" y="320" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                        </svg>
                         <p style="color:var(--accent); font-size:12px; margin-top:10px;">Индивидуальный расчет для ${myData?.username}</p>
                     </div>
                     <table class="data-table">
@@ -186,8 +201,10 @@
                         <tr><td>Определенные центры</td><td>Теменной, Аджна, Горло, G</td></tr>
                     </table>
                     <span class="section-title">РАЗБОР ДИЗАЙНА ОТ ИИ</span>
-                    <div class="ai-section">Как Манифестирующий Генератор, ваша главная задача — не инициировать из ума, а дожидаться отклика вашего тела. Профиль 4/6 означает, что ваше влияние распространяется через сеть ваших знакомых...</div>
+                    <div class="ai-section">Как Манифестирующий Генератор, ваша главная задача — не инициировать из ума, а дожидаться отклика вашего тела. Профиль 4/6 означает, что ваше влияние распространяется через вашу социальную сеть...</div>
                 `;
+                const userCenters = myData?.hd_defined_centers || ['head', 'ajna', 'sacral', 'throat'];
+                setTimeout(() => drawBodygraph(userCenters), 50);
             }
 
             else if(type === 'finance') {
@@ -203,7 +220,7 @@
                         <tr><td>Планета во 2-м доме</td><td>Юпитер</td></tr>
                     </table>
                     <span class="section-title">ФИНАНСОВЫЙ РАЗБОР ОТ ИИ</span>
-                    <div class="ai-section">Ваш финансовый потенциал раскрывается через лидерство и творческое самовыражение (Солнце как управитель 2-го дома). Юпитер во 2-м доме дает возможности для масштабирования доходов...</div>
+                    <div class="ai-section">Ваш финансовый потенциал раскрывается через лидерство. Юпитер во 2-м доме дает возможности для масштабирования доходов при условии соблюдения дисциплины.</div>
                 `;
             }
 
@@ -236,7 +253,7 @@
             else if(type === 'advice') {
                 title.innerText = 'СОВЕТ ДНЯ';
                 const adv = getCached('advice', 'daily', () => {
-                    return `Ваш Тип (${myData?.hd_type || 'Генератор'}) сегодня требует тишины. Луна в Скорпионе советует не принимать поспешных финансовых решений. Идеальное время для планирования, но не для действий.`;
+                    return `Ваш Тип сегодня требует тишины. Луна в Скорпионе советует не принимать поспешных финансовых решений. Идеальное время для планирования.`;
                 });
                 cont.innerHTML = `<div class="ai-section">${adv}</div>`;
             }
@@ -245,7 +262,7 @@
         function sh(p) {
             const ts = document.querySelectorAll('#h-tabs .tab');
             ts.forEach(t => t.classList.remove('active'));
-            if(event) event.target.classList.add('active');
+            if(event && event.target.classList.contains('tab')) event.target.classList.add('active');
 
             const txt = getCached('horo', p, () => {
                 const map = {
@@ -262,10 +279,30 @@
         function calcL() {
             const res = document.getElementById('l-res');
             res.style.display = 'block';
-            res.innerHTML = "✨ Анализирую синастрию и наложения планет...<br><br><b>Ваша совместимость: 89%</b>. Сильная связь по Луне обеспечивает эмоциональный комфорт, а Сатурн партнера в вашем 7 доме гарантирует длительность отношений.";
+            res.innerHTML = "✨ Анализирую синастрию...<br><br><b>Ваша совместимость: 89%</b>. Сильная связь по Луне обеспечивает эмоциональный комфорт.";
+        }
+
+        function drawBodygraph(definedCenters) {
+            const allCenters = ['head', 'ajna', 'throat', 'g', 'heart', 'sacral', 'spleen', 'solar', 'root'];
+            allCenters.forEach(c => {
+                const el = document.getElementById('center-' + c);
+                if(el) {
+                    el.setAttribute('fill', 'none');
+                    el.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+                }
+            });
+            if(!definedCenters) return;
+            definedCenters.forEach(c => {
+                const el = document.getElementById('center-' + c);
+                if(el) {
+                    el.setAttribute('fill', '#a29bfe'); 
+                    el.setAttribute('stroke', '#a29bfe');
+                }
+            });
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        
         init();
     </script>
 </body>
