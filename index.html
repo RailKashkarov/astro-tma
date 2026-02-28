@@ -3,132 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AstroApp</title>
+    <title>AstroApp - Human Design</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg: #0a0a0c;
             --card: #1c1c1e;
-            --modal-bg: #121214; /* Плотный фон, не прозрачный */
+            --modal-bg: #121214;
             --accent: #7b2ff7;
             --text: #ffffff;
             --text-dim: #a0a0a8;
         }
 
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            margin: 0; padding: 0;
-            background: var(--bg);
-            color: var(--text);
-            overflow-x: hidden;
-            font-size: 16px;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); overflow-x: hidden; }
 
         /* Загрузка */
-        #loader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 9999;
-        }
-        .spinner {
-            width: 40px; height: 40px; border: 3px solid rgba(123, 47, 247, 0.2);
-            border-top: 3px solid var(--accent); border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(123, 47, 247, 0.2); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Основной интерфейс */
+        /* Интерфейс */
         #app { display: none; padding: 20px; }
-        
         header { text-align: center; margin-bottom: 30px; }
-        #u-name { font-size: 26px; font-weight: 800; margin: 0; color: white; }
+        #u-name { font-size: 26px; font-weight: 800; margin: 0; }
         #u-info { font-size: 14px; color: var(--text-dim); margin-top: 8px; }
 
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .card {
-            background: var(--card); border-radius: 18px; padding: 25px 15px;
-            text-align: center; border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        .card:active { transform: scale(0.96); background: #2c2c2e; }
+        .card { background: var(--card); border-radius: 18px; padding: 25px 15px; text-align: center; border: 1px solid rgba(255,255,255,0.08); }
+        .card:active { transform: scale(0.96); }
         .card i { font-size: 28px; display: block; margin-bottom: 12px; }
-        .card span { font-weight: 600; font-size: 15px; }
 
-        /* Модальное окно (ИСПРАВЛЕНО: НЕ ПРОЗРАЧНОЕ) */
-        #modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--modal-bg); /* Плотный цвет */
-            display: none; z-index: 1000;
-            flex-direction: column; padding: 20px; 
-            overflow-y: auto;
-        }
-        .m-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
+        /* Модальное окно */
+        #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); display: none; z-index: 1000; flex-direction: column; padding: 20px; overflow-y: auto; }
+        .m-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         #m-title { font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); }
-        .close-btn { font-size: 32px; color: var(--text-dim); cursor: pointer; line-height: 1; }
+        .close-btn { font-size: 32px; color: var(--text-dim); cursor: pointer; }
 
-        /* Human Design элементы */
+        /* HD Стили */
         .hd-chart-box { background: #000; border-radius: 20px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(123, 47, 247, 0.2); }
-        .ai-section { background: rgba(123, 47, 247, 0.15); border-left: 4px solid var(--accent); padding: 18px; border-radius: 12px; margin: 15px 0; font-size: 15px; line-height: 1.6; color: #eee; }
         .section-title { font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; display: block; margin: 25px 0 12px; font-weight: 700; }
-        
         .data-table { width: 100%; border-collapse: collapse; }
         .data-table td { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 15px; }
-        .data-table td:first-child { color: var(--text-dim); }
         .data-table td:last-child { text-align: right; color: white; font-weight: 600; }
 
-        .gate-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .gate-tag { padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; }
+        .gate-tag { display: inline-block; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; margin: 4px; }
         .gate-p { background: #ff3b30; color: white; }
         .gate-d { background: #007aff; color: white; }
+
+        /* ИИ Разбор */
+        .ai-analysis-box { background: linear-gradient(135deg, rgba(123, 47, 247, 0.2), rgba(0, 0, 0, 0.5)); border: 1px solid var(--accent); border-radius: 15px; padding: 20px; margin-top: 30px; }
+        .ai-status { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--accent); margin-bottom: 10px; }
+        .pulse { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse-ai 1.5s infinite; }
+        @keyframes pulse-ai { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
     </style>
 </head>
 <body>
 
-<div id="loader">
-    <div class="spinner"></div>
-    <p style="margin-top:15px; color:var(--text-dim); font-size:14px;">Загрузка данных...</p>
-</div>
+<div id="loader"><div class="spinner"></div></div>
 
 <div id="app">
     <header>
-        <h1 id="u-name">AstroApp</h1>
-        <div id="u-info">Синхронизация с базой...</div>
+        <h1 id="u-name">Загрузка...</h1>
+        <div id="u-info">Синхронизация звезд...</div>
     </header>
-
     <div class="grid">
-        <div class="card" onclick="openModule('hd')">
-            <i>🧬</i>
-            <span>Human Design</span>
-        </div>
-        <div class="card" onclick="openModule('natal')">
-            <i>✨</i>
-            <span>Натальная карта</span>
-        </div>
-        <div class="card" onclick="openModule('finance')">
-            <i>💎</i>
-            <span>Финансовый код</span>
-        </div>
-        <div class="card" onclick="openModule('love')">
-            <i>❤️</i>
-            <span>Совместимость</span>
-        </div>
+        <div class="card" onclick="openModule('hd')"><i>🧬</i><span>Дизайн человека</span></div>
+        <div class="card" onclick="openModule('natal')"><i>✨</i><span>Натальная карта</span></div>
+        <div class="card" onclick="openModule('finance')"><i>💎</i><span>Финансы</span></div>
+        <div class="card" onclick="openModule('love')"><i>❤️</i><span>Совместимость</span></div>
     </div>
 </div>
 
 <div id="modal">
-    <div class="m-header">
-        <span id="m-title">ИНФОРМАЦИЯ</span>
-        <span class="close-btn" onclick="closeModal()">&times;</span>
-    </div>
+    <div class="m-header"><span id="m-title">ИНФОРМАЦИЯ</span><span class="close-btn" onclick="closeModal()">&times;</span></div>
     <div id="m-content"></div>
 </div>
 
@@ -136,7 +85,6 @@
     const tg = window.Telegram.WebApp;
     const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbW51cXp2ZGd4YWRpc2p0YXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTMyMjcsImV4cCI6MjA4NzU4OTIyN30.3iHv_nhBdPZB_sT4TSDSynsu9jEHVDjihV3bLvehcJQ";
-    
     let myData = null;
     let sb = null;
 
@@ -145,98 +93,82 @@
         try {
             if (!sb) sb = supabase.createClient(S_URL, S_KEY);
             const user = tg.initDataUnsafe?.user;
-            
-            if (!user || !user.id) {
-                document.getElementById('u-info').innerText = "Откройте через Telegram";
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-                return;
-            }
+            if (!user) return;
 
-            let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id);
-            if (error) throw error;
-
+            let { data } = await sb.from('users').select('*').eq('telegram_id', user.id);
             if (data && data.length > 0) {
                 myData = data[0];
-                document.getElementById('u-name').innerText = myData.username || "Пользователь";
+                document.getElementById('u-name').innerText = myData.username || "Странник";
                 document.getElementById('u-info').innerText = myData.birth_date ? `${myData.birth_date} • ${myData.birth_city}` : "Данные не заполнены";
-                
-                if (!myData.hd_type && myData.birth_date) {
-                    document.getElementById('u-info').innerText = "⏳ Идет расчет...";
-                    setTimeout(init, 3000);
-                }
-            } else {
-                document.getElementById('u-info').innerText = "Нужна регистрация в боте";
+                if (!myData.hd_type && myData.birth_date) setTimeout(init, 3000);
             }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-        }
+        } catch (e) { console.error(e); }
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
     }
 
     function openModule(type) {
         const m = document.getElementById('modal');
         const cont = document.getElementById('m-content');
-        const title = document.getElementById('m-title');
         m.style.display = 'flex';
-        cont.innerHTML = '';
-
+        
         if (type === 'hd') {
-            title.innerText = 'HUMAN DESIGN';
+            document.getElementById('m-title').innerText = 'HUMAN DESIGN';
             if (!myData || !myData.hd_type) {
-                cont.innerHTML = `<div class="ai-section">Данные еще рассчитываются. Пожалуйста, подождите или перезапустите бота.</div>`;
+                cont.innerHTML = "Данные еще рассчитываются...";
                 return;
             }
 
-            let gatesHtml = '';
-            if (myData.hd_active_gates) {
-                myData.hd_active_gates.forEach(g => {
-                    const style = g.type === 'personality' ? 'gate-p' : 'gate-d';
-                    gatesHtml += `<span class="gate-tag ${style}">${g.gate}.${g.line || 1}</span>`;
-                });
-            }
+            let gatesHtml = (myData.hd_active_gates || []).map(g => 
+                `<span class="gate-tag ${g.type === 'personality' ? 'gate-p' : 'gate-d'}">${g.gate}.${g.line || 1}</span>`
+            ).join('');
 
             cont.innerHTML = `
                 <div class="hd-chart-box">
-                    <svg id="bodygraph-svg" viewBox="0 0 200 400" style="width: 100%; height: 320px; margin: 0 auto; display: block;">
-                        <path d="M100,15 C120,15 135,30 135,50 C135,70 120,85 100,85 C80,85 65,70 65,50 C65,30 80,15 100,15" fill="none" stroke="rgba(255,255,255,0.1)"/>
-                        <polygon id="center-head" points="100,25 120,55 80,55" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        <polygon id="center-ajna" points="80,65 120,65 100,105" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        <rect id="center-throat" x="85" y="115" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        <polygon id="center-g" points="100,155 115,180 100,205 85,180" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        <polygon id="center-heart" points="125,165 145,165 135,185" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        <rect id="center-sacral" x="85" y="215" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        <polygon id="center-spleen" points="45,215 75,215 45,255" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        <polygon id="center-solar" points="155,215 125,215 155,255" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        <rect id="center-root" x="85" y="265" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <svg viewBox="0 0 200 400" style="width: 100%; height: 350px;">
+                        <g stroke="white" stroke-width="1.5" fill="none">
+                            <polygon id="center-head" points="100,20 125,55 75,55" />
+                            <polygon id="center-ajna" points="75,65 125,65 100,105" />
+                            <rect id="center-throat" x="82" y="115" width="36" height="30" rx="2" />
+                            <rect id="center-g" x="85" y="155" width="30" height="30" rx="2" transform="rotate(45 100 170)" />
+                            <polygon id="center-heart" points="125,165 145,165 135,185" />
+                            <rect id="center-sacral" x="85" y="215" width="30" height="30" rx="2" />
+                            <polygon id="center-spleen" points="40,210 70,210 40,260" />
+                            <polygon id="center-solar" points="160,210 130,210 160,260" />
+                            <rect id="center-root" x="85" y="265" width="30" height="30" rx="2" />
+                        </g>
                     </svg>
                 </div>
+
                 <span class="section-title">Ваш профиль</span>
-                <div class="ai-section" style="text-align:center; font-size: 24px; color: white; font-weight:800;">${myData.hd_profile || '—'}</div>
                 <table class="data-table">
                     <tr><td>Тип</td><td>${myData.hd_type}</td></tr>
+                    <tr><td>Профиль</td><td>${myData.hd_profile}</td></tr>
                     <tr><td>Авторитет</td><td>${myData.hd_authority || '—'}</td></tr>
-                    <tr><td>Стратегия</td><td>${myData.hd_strategy || '—'}</td></tr>
+                    <tr><td>Определенность</td><td>${myData.hd_definition || 'Одинарная'}</td></tr>
+                    <tr><td>Инкарнационный крест</td><td>${myData.hd_cross || '—'}</td></tr>
                 </table>
-                <span class="section-title">Активированные ворота</span>
-                <div class="gate-list">${gatesHtml}</div>
-            `;
-            if (myData.hd_defined_centers) setTimeout(() => drawBodygraph(myData.hd_defined_centers), 100);
-        } else {
-            cont.innerHTML = `<div class="ai-section">Этот модуль сейчас в разработке. Мы добавим его в следующем обновлении!</div>`;
-        }
-    }
 
-    function drawBodygraph(definedCenters) {
-        definedCenters.forEach(c => {
-            const el = document.getElementById('center-' + c);
-            if (el) {
-                el.setAttribute('fill', 'var(--accent)');
-                el.setAttribute('stroke', 'var(--accent)');
-            }
-        });
+                <span class="section-title">Активированные ворота</span>
+                <div>${gatesHtml}</div>
+
+                <div class="ai-analysis-box">
+                    <div class="ai-status"><div class="pulse"></div><span>ИИ Анализ Gemini</span></div>
+                    <div style="font-size: 14px; color: #eee;">
+                        Ваш тип <b>${myData.hd_type}</b> указывает на огромный потенциал энергии. 
+                        С профилем <b>${myData.hd_profile}</b> вам важно пробовать новое и делиться опытом...
+                    </div>
+                </div>
+            `;
+            if (myData.hd_defined_centers) setTimeout(() => {
+                myData.hd_defined_centers.forEach(c => {
+                    const el = document.getElementById('center-' + c);
+                    if (el) el.setAttribute('fill', '#7b2ff7');
+                });
+            }, 100);
+        } else {
+            cont.innerHTML = "Этот раздел скоро будет доступен!";
+        }
     }
 
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
