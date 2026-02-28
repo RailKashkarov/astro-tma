@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AstroApp - Mini App</title>
+    <title>AstroApp - Final</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -36,7 +36,7 @@
         }
         #u-name { font-size: 28px; font-weight: 800; margin: 0; }
         #u-info { font-size: 14px; color: var(--text-dim); margin-top: 6px; }
-        .settings-btn { font-size: 24px; cursor: pointer; color: var(--text-dim); }
+        .settings-btn { font-size: 24px; cursor: pointer; }
 
         /* Кнопка "Совет дня" */
         .ai-tip-btn {
@@ -53,14 +53,9 @@
             text-align: center; border: 1px solid rgba(255,255,255,0.05);
             display: flex; flex-direction: column; align-items: center; gap: 8px;
         }
-        .card i { font-size: 24px; }
-        .card span { font-size: 14px; font-weight: 500; }
-
-        /* Кнопка совместимости */
         .love-card {
             grid-column: span 2; background: #9d8df1; color: #000;
-            padding: 18px; border-radius: 24px; text-align: center;
-            font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 8px;
+            padding: 18px; border-radius: 24px; text-align: center; font-weight: 700;
         }
 
         /* Модальные окна */
@@ -69,22 +64,31 @@
         #m-title { font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); }
         .close-btn { font-size: 32px; color: var(--text-dim); cursor: pointer; }
 
+        /* HD и Таблицы */
+        .hd-chart-box { background: #000; border-radius: 24px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--accent-soft); }
+        .section-title { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; display: block; margin: 20px 0 10px; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table td { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+        .data-table td:last-child { text-align: right; font-weight: 600; }
+        
+        .gate-tag { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; margin: 2px; }
+        .gate-p { background: #ff3b30; color: white; }
+        .gate-d { background: #007aff; color: white; }
+
+        /* ИИ Анализ */
+        .ai-analysis-box { background: linear-gradient(135deg, rgba(123, 47, 247, 0.15), rgba(0,0,0,0.4)); border: 1px solid var(--accent); border-radius: 20px; padding: 20px; margin-top: 10px; margin-bottom: 20px; }
+        .ai-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--accent); margin-bottom: 8px; }
+        .pulse { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse-ai 1.5s infinite; }
+        @keyframes pulse-ai { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
         /* Настройки */
         .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        
-        /* Переключатели */
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--accent); }
         input:checked + .slider:before { transform: translateX(20px); }
-
-        /* HD и ИИ разбор */
-        .hd-chart-box { background: #000; border-radius: 24px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--accent-soft); }
-        .data-table { width: 100%; border-collapse: collapse; }
-        .data-table td { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 15px; }
-        .ai-analysis-box { background: linear-gradient(135deg, rgba(123, 47, 247, 0.15), rgba(0,0,0,0.4)); border: 1px solid var(--accent); border-radius: 20px; padding: 20px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -100,9 +104,7 @@
         <div class="settings-btn" onclick="openModule('settings')">⚙️</div>
     </div>
 
-    <div class="ai-tip-btn" onclick="openModule('ai_tip')">
-        ✨ <span>Получить совет дня</span>
-    </div>
+    <div class="ai-tip-btn" onclick="openModule('ai_tip')">✨ <span>Получить совет дня</span></div>
 
     <div class="grid">
         <div class="card" onclick="openModule('natal')"><i>🪐</i><span>Натальная карта</span></div>
@@ -114,10 +116,7 @@
 </div>
 
 <div id="modal">
-    <div class="m-header">
-        <span id="m-title">ИНФОРМАЦИЯ</span>
-        <span class="close-btn" onclick="closeModal()">&times;</span>
-    </div>
+    <div class="m-header"><span id="m-title">ИНФОРМАЦИЯ</span><span class="close-btn" onclick="closeModal()">&times;</span></div>
     <div id="m-content"></div>
 </div>
 
@@ -134,7 +133,6 @@
             if (!sb) sb = supabase.createClient(S_URL, S_KEY);
             const user = tg.initDataUnsafe?.user;
             if (!user) return;
-
             let { data } = await sb.from('users').select('*').eq('telegram_id', user.id);
             if (data && data.length > 0) {
                 myData = data[0];
@@ -146,20 +144,11 @@
         document.getElementById('app').style.display = 'block';
     }
 
-    // Функция обновления настроек в базе (ТВОЯ ЛОГИКА)
     async function updateNotify(column, value) {
         if (!myData) return;
-        try {
-            const { error } = await sb
-                .from('users')
-                .update({ [column]: value })
-                .eq('telegram_id', myData.telegram_id);
-            
-            if (!error) {
-                myData[column] = value; // Обновляем локально
-                tg.HapticFeedback.notificationOccurred('success');
-            }
-        } catch (e) { console.error("Ошибка сохранения:", e); }
+        await sb.from('users').update({ [column]: value }).eq('telegram_id', myData.telegram_id);
+        myData[column] = value;
+        tg.HapticFeedback.notificationOccurred('success');
     }
 
     function openModule(type) {
@@ -169,7 +158,60 @@
         m.style.display = 'flex';
         cont.innerHTML = '';
 
-        if (type === 'settings') {
+        if (type === 'hd') {
+            title.innerText = 'HUMAN DESIGN';
+            if (!myData || !myData.hd_type) {
+                cont.innerHTML = `<div class="ai-analysis-box">Данные рассчитываются в боте...</div>`;
+                return;
+            }
+
+            let gatesHtml = (myData.hd_active_gates || []).map(g => 
+                `<span class="gate-tag ${g.type === 'personality' ? 'gate-p' : 'gate-d'}">${g.gate}.${g.line || 1}</span>`
+            ).join('');
+
+            // ВЕРНУЛ ВЕСЬ КОД ВКЛАДКИ HD СЮДА
+            cont.innerHTML = `
+                <div class="hd-chart-box">
+                    <svg viewBox="0 0 200 400" style="width: 100%; height: 350px;">
+                        <g stroke="white" stroke-width="1.2" fill="none">
+                            <polygon id="center-head" points="100,20 125,55 75,55" />
+                            <polygon id="center-ajna" points="75,65 125,65 100,105" />
+                            <rect id="center-throat" x="82" y="115" width="36" height="30" rx="2" />
+                            <rect id="center-g" x="85" y="155" width="30" height="30" rx="2" transform="rotate(45 100 170)" />
+                            <polygon id="center-heart" points="125,165 145,165 135,185" />
+                            <rect id="center-sacral" x="85" y="215" width="30" height="30" rx="2" />
+                            <polygon id="center-spleen" points="40,210 70,210 40,260" />
+                            <polygon id="center-solar" points="160,210 130,210 160,260" />
+                            <rect id="center-root" x="85" y="265" width="30" height="30" rx="2" />
+                        </g>
+                    </svg>
+                </div>
+                <span class="section-title">Ваш профиль</span>
+                <table class="data-table">
+                    <tr><td>Тип</td><td>${myData.hd_type}</td></tr>
+                    <tr><td>Профиль</td><td>${myData.hd_profile}</td></tr>
+                    <tr><td>Авторитет</td><td>${myData.hd_authority || '—'}</td></tr>
+                    <tr><td>Инкарнационный крест</td><td>${myData.hd_cross || '—'}</td></tr>
+                    <tr><td>Питание</td><td>${myData.hd_diet || '—'}</td></tr>
+                </table>
+                <span class="section-title">Активные ворота</span>
+                <div style="margin-bottom:20px;">${gatesHtml}</div>
+                <div class="ai-analysis-box">
+                    <div class="ai-status"><div class="pulse"></div><span>ИИ АНАЛИЗ ГЕНЕРИРУЕТСЯ...</span></div>
+                    <div style="font-size: 14px; line-height: 1.6;">Ваш тип ${myData.hd_type} требует особой стратегии... Полный разбор будет доступен после подключения API.</div>
+                </div>
+            `;
+            // Закраска центров
+            if (myData.hd_defined_centers) {
+                setTimeout(() => {
+                    myData.hd_defined_centers.forEach(c => {
+                        const el = document.getElementById('center-' + c);
+                        if (el) el.setAttribute('fill', '#7b2ff7');
+                    });
+                }, 50);
+            }
+
+        } else if (type === 'settings') {
             title.innerText = 'УВЕДОМЛЕНИЯ';
             cont.innerHTML = `
                 <div class="ai-analysis-box">
@@ -177,48 +219,13 @@
                     <div class="setting-item"><span>🧬 Биоритмы</span><label class="switch"><input type="checkbox" ${myData?.notify_biorhythm ? 'checked' : ''} onchange="updateNotify('notify_biorhythm', this.checked)"><span class="slider"></span></label></div>
                     <div class="setting-item"><span>💎 Денежный поток</span><label class="switch"><input type="checkbox" ${myData?.notify_money ? 'checked' : ''} onchange="updateNotify('notify_money', this.checked)"><span class="slider"></span></label></div>
                     <div class="setting-item"><span>✨ Совет дня</span><label class="switch"><input type="checkbox" ${myData?.notify_advice ? 'checked' : ''} onchange="updateNotify('notify_advice', this.checked)"><span class="slider"></span></label></div>
-                    <p style="font-size:12px; color:var(--text-dim); margin-top:15px; text-align:center;">Изменения сохраняются автоматически</p>
                 </div>
             `;
-        } else if (type === 'hd') {
-            title.innerText = 'HUMAN DESIGN';
-            // ... (весь код бодиграфа и разбора из предыдущего шага без изменений)
-            cont.innerHTML = `<div class="ai-analysis-box">Загрузка разбора...</div>`; 
-            // Тут оставляем логику отрисовки бодиграфа, которую мы уже утвердили
-            renderHD(cont);
+        } else if (type === 'ai_tip') {
+            title.innerText = 'СОВЕТ ДНЯ';
+            cont.innerHTML = `<div class="ai-analysis-box" style="text-align:center;"><p>"Доверяйте своему внутреннему авторитету. Сегодня лучший день для наблюдения, а не для действий."</p></div>`;
         } else {
-            cont.innerHTML = `<div class="ai-analysis-box" style="text-align:center;">Этот модуль в разработке.</div>`;
-        }
-    }
-
-    // Вспомогательная функция для рендера HD (чтобы не загромождать openModule)
-    function renderHD(cont) {
-        if (!myData?.hd_type) { cont.innerHTML = "Данные рассчитываются..."; return; }
-        cont.innerHTML = `
-            <div class="hd-chart-box">
-                <svg viewBox="0 0 200 400" style="width:100%; height:320px;"><g stroke="white" stroke-width="1.2" fill="none">
-                    <polygon id="center-head" points="100,20 125,55 75,55" />
-                    <polygon id="center-ajna" points="75,65 125,65 100,105" />
-                    <rect id="center-throat" x="82" y="115" width="36" height="30" rx="2" />
-                    <rect id="center-g" x="85" y="155" width="30" height="30" rx="2" transform="rotate(45 100 170)" />
-                    <polygon id="center-heart" points="125,165 145,165 135,185" />
-                    <rect id="center-sacral" x="85" y="215" width="30" height="30" rx="2" />
-                    <polygon id="center-spleen" points="40,210 70,210 40,260" />
-                    <polygon id="center-solar" points="160,210 130,210 160,260" />
-                    <rect id="center-root" x="85" y="265" width="30" height="30" rx="2" />
-                </g></svg>
-            </div>
-            <table class="data-table">
-                <tr><td>Тип</td><td>${myData.hd_type}</td></tr>
-                <tr><td>Профиль</td><td>${myData.hd_profile}</td></tr>
-            </table>
-            <div class="ai-analysis-box"><b>ИИ Разбор:</b> Ждем подключения API...</div>
-        `;
-        if (myData.hd_defined_centers) {
-            myData.hd_defined_centers.forEach(c => {
-                const el = document.getElementById('center-' + c);
-                if (el) el.setAttribute('fill', '#7b2ff7');
-            });
+            cont.innerHTML = `<div class="ai-analysis-box">Модуль в разработке.</div>`;
         }
     }
 
