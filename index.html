@@ -1,6 +1,5 @@
 const tg = window.Telegram.WebApp;
 const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-// Твой полный ключ (взят из твоего кода бота)
 const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbW51cXp2ZGd4YWRpc2p0YXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTMyMjcsImV4cCI6MjA4NzU4OTIyN30.3iHv_nhBdPZB_sT4TSDSynsu9jEHVDjihV3bLvehcJQ";
 let myData = null;
 let sb = null;
@@ -8,10 +7,10 @@ let sb = null;
 async function init() {
     tg.expand();
     try {
-        // Инициализация Supabase
-        sb = supabase.createClient(S_URL, S_KEY);
+        // Инициализация Supabase (если еще не создана)
+        if (!sb) sb = supabase.createClient(S_URL, S_KEY);
         
-        // Получаем ID реального пользователя
+        // Получаем ID пользователя
         const user = tg.initDataUnsafe?.user;
         
         if (!user || !user.id) {
@@ -21,19 +20,26 @@ async function init() {
             return;
         }
 
-        // Запрос данных
-        let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+        // ЗАМЕНА ЗДЕСЬ: используем обычный select без .single()
+        let { data, error } = await sb
+            .from('users')
+            .select('*')
+            .eq('telegram_id', user.id);
         
         if (error) throw error;
 
-        if (data) {
-            myData = data;
-            document.getElementById('u-name').innerText = data.username || "Странник";
-            document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены";
+        // Если нашли пользователя в базе
+        if (data && data.length > 0) {
+            myData = data[0];
+            document.getElementById('u-name').innerText = myData.username || "Странник";
+            document.getElementById('u-info').innerText = myData.birth_date 
+                ? `${myData.birth_date} • ${myData.birth_city}` 
+                : "Данные не заполнены";
             
-            // Если бот еще считает HD, пробуем обновить через 2 секунды
-            if (!data.hd_type && data.birth_date) {
-                setTimeout(init, 2000);
+            // Если бот еще считает HD (hd_type пустой), пробуем обновить через 3 секунды
+            if (!myData.hd_type && myData.birth_date) {
+                document.getElementById('u-info').innerText = "⏳ Синхронизация расчетов...";
+                setTimeout(init, 3000);
             }
         } else {
             document.getElementById('u-info').innerText = "Пройдите регистрацию в боте";
@@ -43,10 +49,12 @@ async function init() {
         document.getElementById('u-info').innerText = "Ошибка связи с базой";
     }
     
+    // Всегда показываем интерфейс после попытки загрузки
     document.getElementById('loader').style.display = 'none';
     document.getElementById('app').style.display = 'block';
 }
 
+// ВСЕ ФУНКЦИИ НИЖЕ (openModule, drawBodygraph, closeModal) ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ
 function openModule(type) {
     const m = document.getElementById('modal');
     const cont = document.getElementById('m-content');
