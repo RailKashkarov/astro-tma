@@ -78,18 +78,34 @@
         let sb = null;
 
         async function init() {
+            tg.expand();
             try {
+                // Инициализация Supabase
                 sb = supabase.createClient(S_URL, S_KEY);
-                const user = tg.initDataUnsafe?.user || { id: 12345 }; // Для теста
                 
-                let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+                // Получаем ID пользователя из Telegram
+                const user = tg.initDataUnsafe?.user || { id: 12345 };
+                
+                // Запрашиваем данные из таблицы users
+                let { data, error } = await sb
+                    .from('users')
+                    .select('*')
+                    .eq('telegram_id', user.id)
+                    .single();
                 
                 if(data) {
                     myData = data;
                     document.getElementById('u-name').innerText = data.username || "Пользователь";
                     document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены";
+                    console.log("Данные загружены:", myData);
+                } else {
+                    document.getElementById('u-info').innerText = "Пройдите опрос в боте";
                 }
-            } catch(e) { console.error("Init Error:", e); }
+            } catch(e) { 
+                console.error("Init Error:", e);
+                document.getElementById('u-info').innerText = "Ошибка загрузки данных";
+            }
+            
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app').style.display = 'block';
         }
@@ -104,6 +120,12 @@
             if(type === 'hd') {
                 title.innerText = 'HUMAN DESIGN';
                 
+                // Если данных о расчете нет
+                if (!myData || !myData.hd_type) {
+                    cont.innerHTML = `<div class="ai-section">Данные еще не рассчитаны. Пожалуйста, вернитесь в бота и пройдите опрос до конца.</div>`;
+                    return;
+                }
+
                 // Рендерим ворота (теги)
                 let gatesHtml = '';
                 if(myData?.hd_active_gates) {
@@ -160,6 +182,8 @@
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        
+        // Запуск
         init();
     </script>
 </body>
