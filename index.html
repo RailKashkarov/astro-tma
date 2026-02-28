@@ -80,31 +80,25 @@
         async function init() {
             tg.expand();
             try {
-                // Инициализация Supabase
                 sb = supabase.createClient(S_URL, S_KEY);
-                
-                // Получаем ID пользователя из Telegram
                 const user = tg.initDataUnsafe?.user || { id: 12345 };
                 
-                // Запрашиваем данные из таблицы users
-                let { data, error } = await sb
-                    .from('users')
-                    .select('*')
-                    .eq('telegram_id', user.id)
-                    .single();
+                let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
                 
                 if(data) {
                     myData = data;
                     document.getElementById('u-name').innerText = data.username || "Пользователь";
                     document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены";
-                    console.log("Данные загружены:", myData);
+                    
+                    // УМНОЕ ОЖИДАНИЕ: Если в базе нет типа HD, пробуем обновить данные через 1.5 сек
+                    if (!data.hd_type && data.birth_date) {
+                        console.log("Ждем завершения расчета...");
+                        setTimeout(init, 1500);
+                    }
                 } else {
                     document.getElementById('u-info').innerText = "Пройдите опрос в боте";
                 }
-            } catch(e) { 
-                console.error("Init Error:", e);
-                document.getElementById('u-info').innerText = "Ошибка загрузки данных";
-            }
+            } catch(e) { console.error("Init Error:", e); }
             
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app').style.display = 'block';
@@ -119,14 +113,11 @@
 
             if(type === 'hd') {
                 title.innerText = 'HUMAN DESIGN';
-                
-                // Если данных о расчете нет
                 if (!myData || !myData.hd_type) {
-                    cont.innerHTML = `<div class="ai-section">Данные еще не рассчитаны. Пожалуйста, вернитесь в бота и пройдите опрос до конца.</div>`;
+                    cont.innerHTML = `<div class="ai-section">Данные еще не рассчитаны. Пожалуйста, подождите или перезапустите бота.</div>`;
                     return;
                 }
 
-                // Рендерим ворота (теги)
                 let gatesHtml = '';
                 if(myData?.hd_active_gates) {
                     myData.hd_active_gates.forEach(g => {
@@ -149,23 +140,15 @@
                             <rect id="center-root" x="80" y="320" width="40" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
                         </svg>
                     </div>
-                    
                     <span class="section-title">Ваши показатели</span>
                     <table class="data-table">
                         <tr><td>Тип</td><td>${myData?.hd_type || 'Расчет...'}</td></tr>
                         <tr><td>Определенные центры</td><td>${myData?.hd_defined_centers?.length || 0} из 9</td></tr>
                     </table>
-
                     <span class="section-title">Активированные ворота</span>
                     <div class="gate-list">${gatesHtml || 'Нет данных'}</div>
-
-                    <div class="ai-section">Ваш бодиграф рассчитан на сервере. Черные ворота — это ваша личность, красные — ваш дизайн (подсознание).</div>
                 `;
-                
-                // Запускаем закрашивание центров
-                if(myData?.hd_defined_centers) {
-                    setTimeout(() => drawBodygraph(myData.hd_defined_centers), 100);
-                }
+                if(myData?.hd_defined_centers) setTimeout(() => drawBodygraph(myData.hd_defined_centers), 100);
             } else {
                 cont.innerHTML = `<div class="ai-section">Блок ${type} в разработке. Данные уже считаются на сервере.</div>`;
             }
@@ -182,8 +165,6 @@
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
-        
-        // Запуск
         init();
     </script>
 </body>
