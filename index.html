@@ -1,166 +1,114 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Astro System Premium</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root { --glass: rgba(255, 255, 255, 0.08); --accent: #a29bfe; --bg: #0a0b10; --card-bg: #161b22; --red: #ff7675; }
-        body { margin: 0; background: var(--bg); color: white; font-family: -apple-system, sans-serif; overflow-x: hidden; }
+const tg = window.Telegram.WebApp;
+const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
+// Твой полный ключ (взят из твоего кода бота)
+const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbW51cXp2ZGd4YWRpc2p0YXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTMyMjcsImV4cCI6MjA4NzU4OTIyN30.3iHv_nhBdPZB_sT4TSDSynsu9jEHVDjihV3bLvehcJQ";
+let myData = null;
+let sb = null;
+
+async function init() {
+    tg.expand();
+    try {
+        // Инициализация Supabase
+        sb = supabase.createClient(S_URL, S_KEY);
         
-        #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
-        .spinner { width: 35px; height: 35px; border: 3px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
-        @keyframes s { to { transform: rotate(360deg); } }
-
-        .container { padding: 20px; max-width: 500px; margin: 0 auto; display: none; }
-        .card { background: var(--card-bg); border-radius: 24px; padding: 25px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); position: relative; }
+        // Получаем ID реального пользователя
+        const user = tg.initDataUnsafe?.user;
         
-        .settings-btn { position: absolute; top: 22px; right: 22px; font-size: 22px; cursor: pointer; opacity: 0.6; transition: 0.3s; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn { background: var(--glass); padding: 22px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; cursor: pointer; font-size: 14px; line-height: 1.4; }
-        .btn-advice { grid-column: span 2; background: rgba(162, 155, 254, 0.12); border: 1px dashed var(--accent); color: var(--accent); font-weight: bold; margin-bottom: 10px; font-size: 16px; }
-        .btn-full { grid-column: span 2; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: black; font-weight: bold; border: none; margin-top: 5px; }
-
-        #modal { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: none; flex-direction: column; }
-        .modal-content { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 100px; }
-        .modal-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; background: #111; border-bottom: 1px solid #222; }
-        
-        .ai-section { background: rgba(255, 255, 255, 0.03); border-left: 3px solid var(--accent); padding: 18px; margin: 20px 0; line-height: 1.6; border-radius: 0 12px 12px 0; font-size: 14px; color: #ccc; }
-        .section-title { color: var(--accent); font-size: 12px; font-weight: bold; text-transform: uppercase; margin-top: 25px; display: block; letter-spacing: 1px; }
-
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .data-table td { padding: 14px 0; border-bottom: 1px solid #222; font-size: 14px; }
-        .data-table td:last-child { text-align: right; color: var(--accent); font-weight: bold; }
-
-        .hd-chart-box { width: 100%; background: #111; border: 1px solid #222; border-radius: 24px; padding: 20px; box-sizing: border-box; text-align: center; margin-bottom: 20px; }
-        .bodygraph-path { fill: rgba(255, 255, 255, 0.03); stroke: rgba(255,255,255,0.1); stroke-width: 1; }
-        
-        .gate-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-        .gate-tag { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
-        .gate-p { background: #333; color: white; }
-        .gate-d { background: var(--red); color: white; }
-    </style>
-</head>
-<body>
-
-    <div id="loader"><div class="spinner"></div></div>
-
-    <div id="app" class="container">
-        <div class="card">
-            <div class="settings-btn" onclick="openModule('settings')">⚙️</div>
-            <div id="u-name" style="font-size: 24px; font-weight: bold;">Странник</div>
-            <div id="u-info" style="opacity: 0.5; font-size: 14px; margin-top: 6px;">Синхронизация...</div>
-        </div>
-
-        <div class="grid">
-            <div class="btn btn-advice" onclick="openModule('advice')">✨ Получить совет дня</div>
-            <div class="btn" onclick="openModule('natal')">🪐<br>Натальная карта</div>
-            <div class="btn" onclick="openModule('hd')">🧬<br>Дизайн человека</div>
-            <div class="btn" onclick="openModule('finance')">💎<br>Финансовый портрет</div>
-            <div class="btn" onclick="openModule('horo')">🔮<br>Прогноз на день</div>
-            <div class="btn btn-full" onclick="openModule('love')">❤️ Совместимость партнеров</div>
-        </div>
-    </div>
-
-    <div id="modal">
-        <div class="modal-header">
-            <b id="m-title">РАЗБОР</b>
-            <span onclick="closeModal()" style="font-size: 30px; cursor: pointer;">&times;</span>
-        </div>
-        <div id="m-content" class="modal-content"></div>
-    </div>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        const S_URL = "https://nimnuqzvdgxadisjtapp.supabase.co";
-        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6I..." // (Твой полный ключ)
-        let myData = null;
-        let sb = null;
-
-        async function init() {
-            tg.expand();
-            try {
-                sb = supabase.createClient(S_URL, S_KEY);
-                const user = tg.initDataUnsafe?.user || { id: 12345 };
-                let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
-                if(data) {
-                    myData = data;
-                    document.getElementById('u-name').innerText = data.username || "Пользователь";
-                    document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены";
-                    if (!data.hd_type && data.birth_date) setTimeout(init, 1500);
-                }
-            } catch(e) { console.error("Init Error:", e); }
+        if (!user || !user.id) {
+            document.getElementById('u-info').innerText = "Ошибка: откройте через бота";
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app').style.display = 'block';
+            return;
         }
 
-        function openModule(type) {
-            const m = document.getElementById('modal');
-            const cont = document.getElementById('m-content');
-            const title = document.getElementById('m-title');
-            m.style.display = 'flex';
-            cont.innerHTML = '';
+        // Запрос данных
+        let { data, error } = await sb.from('users').select('*').eq('telegram_id', user.id).single();
+        
+        if (error) throw error;
 
-            if(type === 'hd') {
-                title.innerText = 'HUMAN DESIGN';
-                if (!myData || !myData.hd_type) {
-                    cont.innerHTML = `<div class="ai-section">Данные еще не рассчитаны...</div>`;
-                    return;
-                }
-
-                let gatesHtml = '';
-                if(myData?.hd_active_gates) {
-                    myData.hd_active_gates.forEach(g => {
-                        const style = g.type === 'personality' ? 'gate-p' : 'gate-d';
-                        gatesHtml += `<span class="gate-tag ${style}">${g.gate}.${g.line || 1}</span>`;
-                    });
-                }
-
-                cont.innerHTML = `
-                    <div class="hd-chart-box">
-                        <svg id="bodygraph-svg" viewBox="0 0 200 400" style="width: 100%; height: 320px; margin: 0 auto; display: block;">
-                            <path class="bodygraph-path" d="M100,15 C120,15 135,30 135,50 C135,70 120,85 100,85 C80,85 65,70 65,50 C65,30 80,15 100,15 M100,90 L130,120 L160,300 C160,330 140,350 100,350 C60,350 40,330 40,300 L70,120 Z" />
-                            <polygon id="center-head" points="100,25 120,55 80,55" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                            <polygon id="center-ajna" points="80,65 120,65 100,105" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                            <rect id="center-throat" x="85" y="115" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                            <polygon id="center-g" points="100,155 115,180 100,205 85,180" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                            <polygon id="center-heart" points="125,165 145,165 135,185" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                            <rect id="center-sacral" x="85" y="215" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                            <polygon id="center-spleen" points="45,215 75,215 45,255" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                            <polygon id="center-solar" points="155,215 125,215 155,255" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                            <rect id="center-root" x="85" y="265" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                        </svg>
-                    </div>
-                    <span class="section-title">Ваш профиль</span>
-                    <div class="ai-section" style="text-align:center; font-size: 24px; color: white;">${myData?.hd_profile || '—'}</div>
-                    <table class="data-table">
-                        <tr><td>Тип</td><td>${myData?.hd_type}</td></tr>
-                        <tr><td>Авторитет</td><td>${myData?.hd_authority || '—'}</td></tr>
-                        <tr><td>Стратегия</td><td>${myData?.hd_strategy || '—'}</td></tr>
-                    </table>
-                    <span class="section-title">Активированные ворота</span>
-                    <div class="gate-list">${gatesHtml}</div>
-                `;
-                if(myData?.hd_defined_centers) setTimeout(() => drawBodygraph(myData.hd_defined_centers), 100);
-            } else {
-                cont.innerHTML = `<div class="ai-section">Блок ${type} в разработке.</div>`;
+        if (data) {
+            myData = data;
+            document.getElementById('u-name').innerText = data.username || "Странник";
+            document.getElementById('u-info').innerText = data.birth_date ? `${data.birth_date} • ${data.birth_city}` : "Данные не заполнены";
+            
+            // Если бот еще считает HD, пробуем обновить через 2 секунды
+            if (!data.hd_type && data.birth_date) {
+                setTimeout(init, 2000);
             }
+        } else {
+            document.getElementById('u-info').innerText = "Пройдите регистрацию в боте";
+        }
+    } catch (e) {
+        console.error("Ошибка загрузки:", e);
+        document.getElementById('u-info').innerText = "Ошибка связи с базой";
+    }
+    
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+}
+
+function openModule(type) {
+    const m = document.getElementById('modal');
+    const cont = document.getElementById('m-content');
+    const title = document.getElementById('m-title');
+    m.style.display = 'flex';
+    cont.innerHTML = '';
+
+    if (type === 'hd') {
+        title.innerText = 'HUMAN DESIGN';
+        if (!myData || !myData.hd_type) {
+            cont.innerHTML = `<div class="ai-section">Данные еще не рассчитаны. Напишите /start в боте.</div>`;
+            return;
         }
 
-        function drawBodygraph(definedCenters) {
-            definedCenters.forEach(c => {
-                const el = document.getElementById('center-' + c);
-                if(el) {
-                    el.setAttribute('fill', 'var(--accent)');
-                    el.setAttribute('stroke', 'var(--accent)');
-                }
+        let gatesHtml = '';
+        if (myData.hd_active_gates) {
+            myData.hd_active_gates.forEach(g => {
+                const style = g.type === 'personality' ? 'gate-p' : 'gate-d';
+                gatesHtml += `<span class="gate-tag ${style}">${g.gate}.${g.line || 1}</span>`;
             });
         }
 
-        function closeModal() { document.getElementById('modal').style.display = 'none'; }
-        init();
-    </script>
-</body>
-</html>
+        cont.innerHTML = `
+            <div class="hd-chart-box">
+                <svg id="bodygraph-svg" viewBox="0 0 200 400" style="width: 100%; height: 320px; margin: 0 auto; display: block;">
+                    <path class="bodygraph-path" d="M100,15 C120,15 135,30 135,50 C135,70 120,85 100,85 C80,85 65,70 65,50 C65,30 80,15 100,15 M100,90 L130,120 L160,300 C160,330 140,350 100,350 C60,350 40,330 40,300 L70,120 Z" />
+                    <polygon id="center-head" points="100,25 120,55 80,55" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <polygon id="center-ajna" points="80,65 120,65 100,105" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <rect id="center-throat" x="85" y="115" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <polygon id="center-g" points="100,155 115,180 100,205 85,180" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <polygon id="center-heart" points="125,165 145,165 135,185" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <rect id="center-sacral" x="85" y="215" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <polygon id="center-spleen" points="45,215 75,215 45,255" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <polygon id="center-solar" points="155,215 125,215 155,255" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                    <rect id="center-root" x="85" y="265" width="30" height="30" rx="3" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                </svg>
+            </div>
+            <span class="section-title">Ваш профиль</span>
+            <div class="ai-section" style="text-align:center; font-size: 24px; color: white;">${myData.hd_profile || '—'}</div>
+            <table class="data-table">
+                <tr><td>Тип</td><td>${myData.hd_type}</td></tr>
+                <tr><td>Авторитет</td><td>${myData.hd_authority || '—'}</td></tr>
+                <tr><td>Стратегия</td><td>${myData.hd_strategy || '—'}</td></tr>
+            </table>
+            <span class="section-title">Активированные ворота</span>
+            <div class="gate-list">${gatesHtml}</div>
+        `;
+        if (myData.hd_defined_centers) setTimeout(() => drawBodygraph(myData.hd_defined_centers), 100);
+    } else {
+        cont.innerHTML = `<div class="ai-section">Блок ${type} в разработке.</div>`;
+    }
+}
+
+function drawBodygraph(definedCenters) {
+    definedCenters.forEach(c => {
+        const el = document.getElementById('center-' + c);
+        if (el) {
+            el.setAttribute('fill', 'var(--accent)');
+            el.setAttribute('stroke', 'var(--accent)');
+        }
+    });
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+init();
