@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AstroApp - Human Design</title>
+    <title>AstroApp - Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -12,6 +12,7 @@
             --card: #1c1c1e;
             --modal-bg: #121214;
             --accent: #7b2ff7;
+            --accent-soft: rgba(123, 47, 247, 0.2);
             --text: #ffffff;
             --text-dim: #a0a0a8;
         }
@@ -21,42 +22,78 @@
 
         /* Загрузка */
         #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
-        .spinner { width: 40px; height: 40px; border: 3px solid rgba(123, 47, 247, 0.2); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--accent-soft); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Интерфейс */
-        #app { display: none; padding: 20px; }
-        header { text-align: center; margin-bottom: 30px; }
-        #u-name { font-size: 26px; font-weight: 800; margin: 0; }
-        #u-info { font-size: 14px; color: var(--text-dim); margin-top: 8px; }
+        /* Контейнер приложения */
+        #app { display: none; padding: 16px; }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .card { background: var(--card); border-radius: 18px; padding: 25px 15px; text-align: center; border: 1px solid rgba(255,255,255,0.08); }
-        .card:active { transform: scale(0.96); }
-        .card i { font-size: 28px; display: block; margin-bottom: 12px; }
+        /* Карточка профиля */
+        .profile-card {
+            background: var(--card); border-radius: 24px; padding: 24px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);
+        }
+        #u-name { font-size: 28px; font-weight: 800; margin: 0; }
+        #u-info { font-size: 14px; color: var(--text-dim); margin-top: 6px; }
+        .settings-btn { font-size: 24px; cursor: pointer; color: var(--text-dim); transition: 0.2s; }
+        .settings-btn:active { transform: rotate(45deg); }
 
-        /* Модальное окно */
+        /* Кнопка "Совет дня" */
+        .ai-tip-btn {
+            background: var(--card); border-radius: 30px; padding: 18px;
+            text-align: center; margin-bottom: 20px; border: 1px dashed var(--accent);
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+            font-weight: 600; color: #d1b1ff; cursor: pointer;
+        }
+
+        /* Грид меню */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .card { 
+            background: var(--card); border-radius: 24px; padding: 24px 12px;
+            text-align: center; border: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .card i { font-size: 24px; }
+        .card span { font-size: 14px; font-weight: 500; }
+
+        /* Кнопка совместимости */
+        .love-card {
+            grid-column: span 2; background: #9d8df1; color: #000;
+            padding: 18px; border-radius: 24px; text-align: center;
+            font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+
+        /* Модальные окна */
         #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); display: none; z-index: 1000; flex-direction: column; padding: 20px; overflow-y: auto; }
-        .m-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .m-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         #m-title { font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); }
         .close-btn { font-size: 32px; color: var(--text-dim); cursor: pointer; }
 
         /* HD Стили */
-        .hd-chart-box { background: #000; border-radius: 20px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(123, 47, 247, 0.2); }
+        .hd-chart-box { background: #000; border-radius: 24px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--accent-soft); }
         .section-title { font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; display: block; margin: 25px 0 12px; font-weight: 700; }
         .data-table { width: 100%; border-collapse: collapse; }
-        .data-table td { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 15px; }
+        .data-table td { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 15px; }
         .data-table td:last-child { text-align: right; color: white; font-weight: 600; }
+        
+        /* ИИ Анализ */
+        .ai-analysis-box { background: linear-gradient(135deg, rgba(123, 47, 247, 0.15), rgba(0,0,0,0.4)); border: 1px solid var(--accent); border-radius: 20px; padding: 20px; margin-top: 20px; }
+        .ai-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--accent); margin-bottom: 10px; font-weight: 700; }
+        .pulse { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse-ai 1.5s infinite; }
+        @keyframes pulse-ai { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
-        .gate-tag { display: inline-block; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; margin: 4px; }
+        .gate-tag { display: inline-block; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; margin: 4px 4px 4px 0; }
         .gate-p { background: #ff3b30; color: white; }
         .gate-d { background: #007aff; color: white; }
 
-        /* ИИ Разбор */
-        .ai-analysis-box { background: linear-gradient(135deg, rgba(123, 47, 247, 0.2), rgba(0, 0, 0, 0.5)); border: 1px solid var(--accent); border-radius: 15px; padding: 20px; margin-top: 30px; }
-        .ai-status { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--accent); margin-bottom: 10px; }
-        .pulse { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse-ai 1.5s infinite; }
-        @keyframes pulse-ai { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+        /* Переключатели для настроек */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(18px); }
     </style>
 </head>
 <body>
@@ -64,15 +101,24 @@
 <div id="loader"><div class="spinner"></div></div>
 
 <div id="app">
-    <header>
-        <h1 id="u-name">Загрузка...</h1>
-        <div id="u-info">Синхронизация звезд...</div>
-    </header>
+    <div class="profile-card">
+        <div>
+            <h1 id="u-name">Странник</h1>
+            <div id="u-info">Синхронизация...</div>
+        </div>
+        <div class="settings-btn" onclick="openModule('settings')">⚙️</div>
+    </div>
+
+    <div class="ai-tip-btn" onclick="openModule('ai_tip')">
+        ✨ <span>Получить совет дня</span>
+    </div>
+
     <div class="grid">
+        <div class="card" onclick="openModule('natal')"><i>🪐</i><span>Натальная карта</span></div>
         <div class="card" onclick="openModule('hd')"><i>🧬</i><span>Дизайн человека</span></div>
-        <div class="card" onclick="openModule('natal')"><i>✨</i><span>Натальная карта</span></div>
-        <div class="card" onclick="openModule('finance')"><i>💎</i><span>Финансы</span></div>
-        <div class="card" onclick="openModule('love')"><i>❤️</i><span>Совместимость</span></div>
+        <div class="card" onclick="openModule('finance')"><i>💎</i><span>Финансовый портрет</span></div>
+        <div class="card" onclick="openModule('forecast')"><i>🔮</i><span>Прогноз на день</span></div>
+        <div class="love-card" onclick="openModule('love')">💖 Совместимость партнеров</div>
     </div>
 </div>
 
@@ -99,7 +145,7 @@
             if (data && data.length > 0) {
                 myData = data[0];
                 document.getElementById('u-name').innerText = myData.username || "Странник";
-                document.getElementById('u-info').innerText = myData.birth_date ? `${myData.birth_date} • ${myData.birth_city}` : "Данные не заполнены";
+                document.getElementById('u-info').innerText = myData.birth_date ? `${myData.birth_date} • ${myData.birth_city}` : "Синхронизация...";
                 if (!myData.hd_type && myData.birth_date) setTimeout(init, 3000);
             }
         } catch (e) { console.error(e); }
@@ -110,12 +156,14 @@
     function openModule(type) {
         const m = document.getElementById('modal');
         const cont = document.getElementById('m-content');
+        const title = document.getElementById('m-title');
         m.style.display = 'flex';
-        
+        cont.innerHTML = '';
+
         if (type === 'hd') {
-            document.getElementById('m-title').innerText = 'HUMAN DESIGN';
+            title.innerText = 'HUMAN DESIGN';
             if (!myData || !myData.hd_type) {
-                cont.innerHTML = "Данные еще рассчитываются...";
+                cont.innerHTML = `<div class="ai-analysis-box">Данные рассчитываются...</div>`;
                 return;
             }
 
@@ -126,7 +174,7 @@
             cont.innerHTML = `
                 <div class="hd-chart-box">
                     <svg viewBox="0 0 200 400" style="width: 100%; height: 350px;">
-                        <g stroke="white" stroke-width="1.5" fill="none">
+                        <g stroke="white" stroke-width="1.2" fill="none">
                             <polygon id="center-head" points="100,20 125,55 75,55" />
                             <polygon id="center-ajna" points="75,65 125,65 100,105" />
                             <rect id="center-throat" x="82" y="115" width="36" height="30" rx="2" />
@@ -139,35 +187,57 @@
                         </g>
                     </svg>
                 </div>
-
-                <span class="section-title">Ваш профиль</span>
+                <span class="section-title">Анализ Личности</span>
                 <table class="data-table">
                     <tr><td>Тип</td><td>${myData.hd_type}</td></tr>
                     <tr><td>Профиль</td><td>${myData.hd_profile}</td></tr>
                     <tr><td>Авторитет</td><td>${myData.hd_authority || '—'}</td></tr>
-                    <tr><td>Определенность</td><td>${myData.hd_definition || 'Одинарная'}</td></tr>
                     <tr><td>Инкарнационный крест</td><td>${myData.hd_cross || '—'}</td></tr>
+                    <tr><td>Питание</td><td>${myData.hd_diet || 'Прямое'}</td></tr>
                 </table>
-
-                <span class="section-title">Активированные ворота</span>
+                <span class="section-title">Активные ворота</span>
                 <div>${gatesHtml}</div>
-
                 <div class="ai-analysis-box">
-                    <div class="ai-status"><div class="pulse"></div><span>ИИ Анализ Gemini</span></div>
-                    <div style="font-size: 14px; color: #eee;">
-                        Ваш тип <b>${myData.hd_type}</b> указывает на огромный потенциал энергии. 
-                        С профилем <b>${myData.hd_profile}</b> вам важно пробовать новое и делиться опытом...
+                    <div class="ai-status"><div class="pulse"></div><span>ИИ РАЗБОР (GEMINI API ПРЕДВАРИТЕЛЬНО)</span></div>
+                    <div style="font-size: 14px; line-height: 1.6; color: #eee;">
+                        Ваша конфигурация как <b>${myData.hd_type}</b> говорит о том, что вам нельзя спешить. ИИ анализирует ваши ворота для составления персональной стратегии успеха...
                     </div>
                 </div>
             `;
-            if (myData.hd_defined_centers) setTimeout(() => {
-                myData.hd_defined_centers.forEach(c => {
-                    const el = document.getElementById('center-' + c);
-                    if (el) el.setAttribute('fill', '#7b2ff7');
-                });
-            }, 100);
+            if (myData.hd_defined_centers) {
+                setTimeout(() => {
+                    myData.hd_defined_centers.forEach(c => {
+                        const el = document.getElementById('center-' + c);
+                        if (el) el.setAttribute('fill', '#7b2ff7');
+                    });
+                }, 100);
+            }
+        } else if (type === 'settings') {
+            title.innerText = 'НАСТРОЙКИ';
+            cont.innerHTML = `
+                <div class="ai-analysis-box">
+                    <h3 style="margin-top:0">Уведомления</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin: 20px 0;">
+                        <span>Ежедневный прогноз</span>
+                        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin: 20px 0;">
+                        <span>Советы от ИИ</span>
+                        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                    </div>
+                    <p style="font-size:12px; color:var(--text-dim);">Уведомления приходят прямо в чат с ботом.</p>
+                </div>
+            `;
+        } else if (type === 'ai_tip') {
+            title.innerText = 'СОВЕТ ДНЯ';
+            cont.innerHTML = `
+                <div class="ai-analysis-box" style="text-align:center;">
+                    <div class="ai-status" style="justify-content:center;"><div class="pulse"></div><span>ИИ ГЕНЕРИРУЕТ...</span></div>
+                    <p style="font-style:italic; font-size:16px;">"Сегодня ваш отклик — ваш главный компас. Слушайте тело, а не мысли окружающих."</p>
+                </div>
+            `;
         } else {
-            cont.innerHTML = "Этот раздел скоро будет доступен!";
+            cont.innerHTML = `<div class="ai-analysis-box">Раздел "${type}" в разработке.</div>`;
         }
     }
 
